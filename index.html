@@ -612,24 +612,16 @@
           const rows = json.table.rows;
           const birthdays = rows.map(row => {
             const name = row.c[0].v + "'s Birthday"; // Column A: Name
-            const dateStr = row.c[1].v;              // Column B: Raw date value
+            const dateStr = row.c[1].v;              // Column B: e.g., "Date(2020,1,5)"
             console.log('Raw date string:', dateStr); // Debug raw value
-            let month, day;
-            // Handle MM-DD-YYYY format
-            if (typeof dateStr === 'string' && dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
-              const [m, d] = dateStr.split('-').map(Number);
-              month = m - 1; // 0-11
-              day = d;
-            } else {
-              // Fallback: Parse as Date for other formats
-              const date = new Date(dateStr);
-              month = date.getMonth(); // 0-11
-              day = date.getDate();    // 1-31
-            }
+            // Parse Date(year,month,day) format
+            const match = dateStr.match(/Date\((\d+),(\d+),(\d+)\)/);
+            if (!match) throw new Error(`Invalid date format: ${dateStr}`);
+            const [, year, month, day] = match.map(Number);
             return {
               name: name,
-              month: month,
-              day: day
+              month: month, // Already 0-based from Google Sheets (0-11)
+              day: day      // 1-31
             };
           });
           console.log('Parsed birthdays:', birthdays);
