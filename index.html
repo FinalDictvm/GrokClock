@@ -147,7 +147,13 @@
       z-index: 5;
       cursor: pointer;
       display: none;
+      transition: top 0.3s ease, left 0.3s ease;
     }
+    .major-holiday-dot { background: rgb(255, 165, 0); }
+    .minor-holiday-dot { background: rgb(255, 0, 0); }
+    .birthday-dot { background: rgb(255, 8, 201); border: 1px solid white; }
+    .custom-dot { background: rgb(4, 255, 0); }
+    .dpt-dot { background: rgb(13, 126, 255); }
     .major-holiday-dot,
     .minor-holiday-dot,
     .birthday-dot,
@@ -162,11 +168,6 @@
       border-radius: 50%;
       transition: transform 0.2s ease;
     }
-    .major-holiday-dot { background: rgb(255, 165, 0); } /* Orange */
-    .minor-holiday-dot { background: rgb(255, 0, 0); }   /* Red */
-    .birthday-dot { background: rgb(255, 8, 201); border: 1px solid white; } /* Violet with white border */
-    .custom-dot { background: rgb(4, 255, 0); }          /* Green */
-    .dpt-dot { background: rgb(13, 126, 255); }          /* Blue-ish */
     .active .major-holiday-dot,
     .active .minor-holiday-dot,
     .active .birthday-dot,
@@ -183,6 +184,7 @@
       cursor: move;
       user-select: none;
       line-height: 1;
+      transition: top 0.3s ease, left 0.3s ease;
     }
     .connector {
       position: absolute;
@@ -206,7 +208,7 @@
       justify-content: flex-end;
       align-items: center;
       font-size: 0.9em;
-      color: #D3D3D3; /* Light gray */
+      color: #D3D3D3;
       cursor: pointer;
       width: 100%;
       max-width: 200px;
@@ -235,34 +237,14 @@
       font-size: 12px;
       font-weight: bold;
     }
-    #toggleMajorHolidays:checked + .checkbox-custom::after { 
-      color: rgb(255, 165, 0); /* Orange */
-      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white; /* White outline */
-    }
-    #toggleMinorHolidays:checked + .checkbox-custom::after { 
-      color: rgb(255, 0, 0); /* Red */
-      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white; /* White outline */
-    }
-    #toggleBirthdays:checked + .checkbox-custom::after { 
-      color: rgb(255, 8, 201); /* Violet */
-      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white; /* White outline */
-    }
-    #toggleDptEvents:checked + .checkbox-custom::after { 
-      color: rgb(13, 126, 255); /* Blue-ish */
-      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white; /* White outline */
-    }
-    #toggleCustomEvent input:checked + .checkbox-custom::after { 
-      color: rgb(4, 255, 0); /* Green */
-      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white; /* White outline */
-    }
+    #toggleMajorHolidays:checked + .checkbox-custom::after { color: rgb(255, 165, 0); }
+    #toggleMinorHolidays:checked + .checkbox-custom::after { color: rgb(255, 0, 0); }
+    #toggleBirthdays:checked + .checkbox-custom::after { color: rgb(255, 8, 201); }
+    #toggleDptEvents:checked + .checkbox-custom::after { color: rgb(13, 126, 255); }
+    #toggleCustomEvents:checked + .checkbox-custom::after { color: rgb(4, 255, 0); }
     #toggleSeasons:checked + .checkbox-custom::after,
     #toggleTemperatures:checked + .checkbox-custom::after,
-    #toggleClockHands:checked + .checkbox-custom::after { 
-      color: white; /* No outline for these */
-    }
-    #toggleCustomEvent {
-      display: none;
-    }
+    #toggleClockHands:checked + .checkbox-custom::after { color: white; }
     .custom-event-button {
       width: 300px;
       margin-left: auto;
@@ -285,14 +267,7 @@
       40% { transform: scale(2); opacity: 1; }
       100% { transform: scale(1); opacity: 1; }
     }
-    @keyframes rippleOut {
-      0% { transform: scale(1); opacity: 1; }
-      5% { transform: scale(1.6); opacity: 1; }
-      60% { transform: scale(0.2); opacity: 0.8; }
-      100% { transform: scale(0); opacity: 0; }
-    }
     .ripple-in { animation: rippleIn 0.3s forwards; }
-    .ripple-out { animation: rippleOut 0.6s forwards; }
     .temperature {
       font-size: 0.8em;
       color: white;
@@ -361,9 +336,9 @@
       <input type="checkbox" id="toggleDptEvents">
       <span class="checkbox-custom"></span>
     </label>
-    <label class="checkbox-label" id="toggleCustomEvent">
+    <label class="checkbox-label">
       Custom Events
-      <input type="checkbox">
+      <input type="checkbox" id="toggleCustomEvents">
       <span class="checkbox-custom"></span>
     </label>
   </div>
@@ -380,6 +355,10 @@
       const averageTemps = [30, 35, 45, 55, 65, 75, 80, 78, 70, 60, 50, 35];
       const temperatureElements = [];
 
+      // Dynamic priority list for event types, starts with known types
+      let typePriority = ["major-holiday", "minor-holiday", "birthday", "dpt", "custom"];
+      const visibilityMap = {};
+
       function getDaySuffix(day) {
         if (day >= 11 && day <= 13) return "th";
         switch(day % 10) {
@@ -395,16 +374,14 @@
         return monthNames[month - 1] + " " + day + getDaySuffix(day);
       }
 
-      // Helper: Get nth weekday of a month (e.g., 3rd Monday)
-      function nthWeekdayOfMonth(year, month, weekday, n) { // month: 1-12, weekday: 0=Sun, 1=Mon, ..., n: 1st, 2nd, etc.
+      function nthWeekdayOfMonth(year, month, weekday, n) {
         const firstDay = new Date(year, month - 1, 1);
         const firstWeekday = firstDay.getDay();
         const offset = (weekday - firstWeekday + 7) % 7;
         return 1 + offset + (n - 1) * 7;
       }
 
-      // Helper: Get last weekday of a month
-      function lastWeekdayOfMonth(year, month, weekday) { // month: 1-12, weekday: 0=Sun, 1=Mon, ...
+      function lastWeekdayOfMonth(year, month, weekday) {
         const lastDay = new Date(year, month, 0).getDate();
         const date = new Date(year, month - 1, lastDay);
         while (date.getDay() !== weekday) {
@@ -413,7 +390,6 @@
         return date.getDate();
       }
 
-      // Helper: Calculate Easter Sunday (Meeus/Jones/Butcher algorithm)
       function easterSunday(year) {
         const a = year % 19;
         const b = Math.floor(year / 100);
@@ -427,12 +403,11 @@
         const k = c % 4;
         const l = (32 + 2 * e + 2 * i - h - k) % 7;
         const m = Math.floor((a + 11 * h + 22 * l) / 451);
-        const month = Math.floor((h + l - 7 * m + 114) / 31); // 3 or 4
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
         const day = ((h + l - 7 * m + 114) % 31) + 1;
         return { month: month, day: day };
       }
 
-      // Helper: Get next occurrence of a holiday
       function getNextHolidayDate(name, year, month, day, calcFunc) {
         const today = new Date();
         let holidayYear = today.getFullYear();
@@ -543,16 +518,9 @@
         if (marker.labelElement) { marker.labelElement.remove(); marker.labelElement = null; }
         if (marker.connectorElement) { marker.connectorElement.remove(); marker.connectorElement = null; }
         marker.dataset.labelVisible = "false";
-        if ((marker.classList.contains("major-holiday-marker") && !majorHolidaysVisible) ||
-            (marker.classList.contains("minor-holiday-marker") && !minorHolidaysVisible) ||
-            (marker.classList.contains("birthday-marker") && !birthdaysVisible) ||
-            (marker.classList.contains("custom-marker") && !customEventsVisible) ||
-            (marker.classList.contains("dpt-marker") && !dptEventsVisible)) {
-          marker.classList.add("ripple-out");
-          setTimeout(() => {
-            marker.classList.remove("ripple-out");
-            marker.style.display = "none";
-          }, 300);
+        const type = marker.className.split('-')[0];
+        if (!visibilityMap[type]) {
+          marker.style.display = "none";
         }
       }
 
@@ -636,6 +604,7 @@
             hideLabel(marker);
           });
         }
+        updateDotPositions();
       }
 
       function getClosestMarker(x, y) {
@@ -657,7 +626,10 @@
         return activeMarker;
       }
 
-      function createMarker(data, type) {
+      function createMarker(data, type, color = null) {
+        if (!typePriority.includes(type)) {
+          typePriority.push(type); // Dynamically add new type to priority list
+        }
         const currentYear = new Date().getFullYear();
         const totalDays = new Date(currentYear, data.month, 0).getDate();
         const fraction = (data.day - 1) / totalDays;
@@ -675,20 +647,15 @@
         container.dataset.month = data.month;
         container.dataset.day = data.day;
         container.dataset.year = data.year;
-        container.style.display = "none";
+        container.style.display = visibilityMap[type] ? "block" : "none";
         const dot = document.createElement("div");
         dot.className = `${type}-dot`;
+        if (color) dot.style.backgroundColor = color;
         container.appendChild(dot);
         clock.appendChild(container);
         return container;
       }
 
-      function createMajorHolidayMarker(data) { return createMarker(data, "major-holiday"); }
-      function createMinorHolidayMarker(data) { return createMarker(data, "minor-holiday"); }
-      function createCustomMarker(data) { return createMarker(data, "custom"); }
-      function createDptMarker(data) { return createMarker(data, "dpt"); }
-
-      // Major Holidays (Orange)
       const majorHolidays = [
         { name: "Independence Day", month: 7, day: 4 },
         { name: "Thanksgiving", calc: (year) => ({ month: 11, day: nthWeekdayOfMonth(year, 11, 4, 4) }) },
@@ -701,9 +668,8 @@
         { name: "Father's Day", calc: (year) => ({ month: 6, day: nthWeekdayOfMonth(year, 6, 0, 3) }) },
         { name: "Halloween", month: 10, day: 31 }
       ].map(holiday => getNextHolidayDate(holiday.name, new Date().getFullYear(), holiday.month, holiday.day, holiday.calc));
-      majorHolidays.forEach(holiday => createMajorHolidayMarker(holiday));
+      majorHolidays.forEach(holiday => createMarker(holiday, "major-holiday"));
 
-      // Minor Holidays (Red)
       const minorHolidays = [
         { name: "Memorial Day", calc: (year) => ({ month: 5, day: lastWeekdayOfMonth(year, 5, 1) }) },
         { name: "Labor Day", calc: (year) => ({ month: 9, day: nthWeekdayOfMonth(year, 9, 1, 1) }) },
@@ -722,7 +688,7 @@
         }},
         { name: "Earth Day", month: 4, day: 22 }
       ].map(holiday => getNextHolidayDate(holiday.name, new Date().getFullYear(), holiday.month, holiday.day, holiday.calc));
-      minorHolidays.forEach(holiday => createMinorHolidayMarker(holiday));
+      minorHolidays.forEach(holiday => createMarker(holiday, "minor-holiday"));
 
       async function fetchBirthdays() {
         try {
@@ -737,28 +703,17 @@
           const json = JSON.parse(cleanedText);
           const rows = json.table.rows;
           const birthdays = rows.map(row => {
-            try {
-              const name = row.c[0] && row.c[0].v ? row.c[0].v + "'s Birthday" : null;
-              const dateStr = row.c[1] && row.c[1].v ? row.c[1].v : null;
-              if (!name || !dateStr) return null;
-              const match = dateStr.match(/Date\((\d+),(\d+),(\d+)\)/);
-              if (!match) throw new Error(`Invalid date format: ${dateStr}`);
-              const [, year, month, day] = match.map(Number);
-              return {
-                name: name,
-                month: month + 1,
-                day: day,
-                year: year
-              };
-            } catch (error) {
-              console.warn(`Skipping entry due to error: ${error.message}`);
-              return null;
-            }
-          }).filter(birthday => birthday !== null);
-          console.log('Parsed birthdays:', birthdays);
+            const name = row.c[0]?.v + "'s Birthday" || null;
+            const dateStr = row.c[1]?.v || null;
+            if (!name || !dateStr) return null;
+            const match = dateStr.match(/Date\((\d+),(\d+),(\d+)\)/);
+            if (!match) return null;
+            const [, year, month, day] = match.map(Number);
+            return { name, month: month + 1, day, year };
+          }).filter(b => b);
           return birthdays;
         } catch (error) {
-          console.error('Error fetching birthdays from Google Sheets:', error);
+          console.error('Error fetching birthdays:', error);
           return [];
         }
       }
@@ -778,172 +733,113 @@
         { name: "Get a Job!", month: 8, day: 11 },
         { name: "Commencement", month: 4, day: 26 }
       ];
-      dptEvents.forEach(event => createDptMarker(event));
+      dptEvents.forEach(event => createMarker(event, "dpt"));
 
-      let majorHolidaysVisible = false;
-      const toggleMajorHolidays = document.getElementById("toggleMajorHolidays");
-      toggleMajorHolidays.addEventListener("change", function() {
-        const markers = document.querySelectorAll(".major-holiday-marker");
-        majorHolidaysVisible = this.checked;
-        if (majorHolidaysVisible) {
-          markers.forEach(marker => {
+      function addToggle(type, labelText) {
+        const controls = document.querySelector(".controls");
+        const label = document.createElement("label");
+        label.className = "checkbox-label";
+        label.innerHTML = `${labelText}<input type="checkbox" id="toggle${type.charAt(0).toUpperCase() + type.slice(1)}"><span class="checkbox-custom"></span>`;
+        controls.appendChild(label);
+        const checkbox = label.querySelector("input");
+        checkbox.addEventListener("change", function() {
+          visibilityMap[type] = this.checked;
+          updateDotPositions();
+        });
+        visibilityMap[type] = false;
+      }
+
+      // Initialize toggles for existing types
+      addToggle("major-holiday", "Major Holidays");
+      addToggle("minor-holiday", "Minor Holidays");
+      addToggle("birthday", "Birthdays");
+      addToggle("dpt", "DPT & Life Events");
+      addToggle("custom", "Custom Events");
+
+      document.getElementById("addCustomEvent").addEventListener("click", () => {
+        const name = prompt("Enter event name:");
+        const date = prompt("Enter date (MM-DD):");
+        if (name && date) {
+          const [month, day] = date.split("-").map(Number);
+          if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+            const marker = createMarker({ name, month, day }, "custom");
+            if (visibilityMap["custom"]) marker.style.display = "block";
+            updateDotPositions();
+          } else {
+            alert("Invalid date format!");
+          }
+        }
+      });
+
+      function updateDotPositions() {
+        const dateToVisibleDots = {};
+        const markers = clock.querySelectorAll(".marker");
+
+        markers.forEach(marker => {
+          const type = marker.className.split('-')[0];
+          const isVisible = visibilityMap[type] || marker.dataset.labelVisible === "true";
+          if (isVisible) {
             marker.style.display = "block";
-            marker.offsetWidth;
-            marker.classList.add("ripple-in");
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
+            const dateKey = `${marker.dataset.month}-${marker.dataset.day}`;
+            if (!dateToVisibleDots[dateKey]) dateToVisibleDots[dateKey] = [];
+            dateToVisibleDots[dateKey].push(marker);
+          } else {
+            marker.style.display = "none";
+          }
+        });
+
+        Object.keys(dateToVisibleDots).forEach(dateKey => {
+          const dots = dateToVisibleDots[dateKey];
+          dots.sort((a, b) => {
+            const typeA = a.className.split('-')[0];
+            const typeB = b.className.split('-')[0];
+            const priorityA = typePriority.indexOf(typeA);
+            const priorityB = typePriority.indexOf(typeB);
+            if (priorityA !== priorityB) return priorityA - priorityB;
+            return a.dataset.name.localeCompare(b.dataset.name);
           });
-        } else {
-          markers.forEach(marker => {
-            if (marker.dataset.labelVisible !== "true") {
-              marker.classList.add("ripple-out");
-              setTimeout(() => {
-                marker.classList.remove("ripple-out");
-                marker.style.display = "none";
-              }, 300);
+
+          dots.forEach((dot, index) => {
+            const slot = index;
+            const offset = slot * 4;
+            const angle = (dot.dataset.month - 1 + (dot.dataset.day - 1) / new Date(new Date().getFullYear(), dot.dataset.month, 0).getDate() + 1) * 30;
+            const radian = (angle - 90) * Math.PI / 180;
+            const radius = 160 + offset;
+            const markerCenterX = centerX + radius * Math.cos(radian);
+            const markerCenterY = centerY + radius * Math.sin(radian);
+            dot.style.left = (markerCenterX - 10) + "px";
+            dot.style.top = (markerCenterY - 10) + "px";
+            if (dot.labelElement) {
+              const label = dot.labelElement;
+              const labelRect = label.getBoundingClientRect();
+              const margin = 15;
+              const dx = markerCenterX - centerX;
+              const dy = markerCenterY - centerY;
+              const angleLabel = Math.atan2(dy, dx);
+              let labelX, labelY;
+              const horizontalOffset = labelRect.width + margin;
+              const verticalOffset = labelRect.height + margin;
+              const angleDegLabel = (angleLabel * 180 / Math.PI + 360) % 360;
+              if (angleDegLabel >= 315 || angleDegLabel < 45) {
+                labelX = markerCenterX + margin;
+                labelY = markerCenterY - (labelRect.height / 2);
+              } else if (angleDegLabel >= 135 && angleDegLabel < 225) {
+                labelX = markerCenterX - horizontalOffset;
+                labelY = markerCenterY - (labelRect.height / 2);
+              } else if (angleDegLabel >= 225 && angleDegLabel < 315) {
+                labelX = markerCenterX - (labelRect.width / 2);
+                labelY = markerCenterY - verticalOffset;
+              } else {
+                labelX = markerCenterX - (labelRect.width / 2);
+                labelY = markerCenterY + margin;
+              }
+              label.style.left = labelX + "px";
+              label.style.top = labelY + "px";
+              updateConnector(dot);
             }
           });
-        }
-      });
-
-      let minorHolidaysVisible = false;
-      const toggleMinorHolidays = document.getElementById("toggleMinorHolidays");
-      toggleMinorHolidays.addEventListener("change", function() {
-        const markers = document.querySelectorAll(".minor-holiday-marker");
-        minorHolidaysVisible = this.checked;
-        if (minorHolidaysVisible) {
-          markers.forEach(marker => {
-            marker.style.display = "block";
-            marker.offsetWidth;
-            marker.classList.add("ripple-in");
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          });
-        } else {
-          markers.forEach(marker => {
-            if (marker.dataset.labelVisible !== "true") {
-              marker.classList.add("ripple-out");
-              setTimeout(() => {
-                marker.classList.remove("ripple-out");
-                marker.style.display = "none";
-              }, 300);
-            }
-          });
-        }
-      });
-
-      let birthdaysVisible = false;
-      const toggleBirthdays = document.getElementById("toggleBirthdays");
-      toggleBirthdays.addEventListener("change", function() {
-        const markers = document.querySelectorAll(".birthday-marker");
-        birthdaysVisible = this.checked;
-        if (birthdaysVisible) {
-          markers.forEach(marker => {
-            marker.style.display = "block";
-            marker.offsetWidth;
-            marker.classList.add("ripple-in");
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          });
-        } else {
-          markers.forEach(marker => {
-            if (marker.dataset.labelVisible !== "true") {
-              marker.classList.add("ripple-out");
-              setTimeout(() => {
-                marker.classList.remove("ripple-out");
-                marker.style.display = "none";
-              }, 300);
-            }
-          });
-        }
-      });
-
-      let customEventsVisible = false;
-      const toggleCustomEvent = document.getElementById("toggleCustomEvent").querySelector("input");
-      document.getElementById("addCustomEvent").addEventListener("change", function() {
-        const markers = document.querySelectorAll(".custom-marker");
-        customEventsVisible = this.checked;
-        if (customEventsVisible) {
-          markers.forEach(marker => {
-            marker.style.display = "block";
-            marker.offsetWidth;
-            marker.classList.add("ripple-in");
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          });
-        } else {
-          markers.forEach(marker => {
-            if (marker.dataset.labelVisible !== "true") {
-              marker.classList.add("ripple-out");
-              setTimeout(() => {
-                marker.classList.remove("ripple-out");
-                marker.style.display = "none";
-              }, 300);
-            }
-          });
-        }
-      });
-
-      let dptEventsVisible = false;
-      const toggleDptEvents = document.getElementById("toggleDptEvents");
-      toggleDptEvents.addEventListener("change", function() {
-        const markers = document.querySelectorAll(".dpt-marker");
-        dptEventsVisible = this.checked;
-        if (dptEventsVisible) {
-          markers.forEach(marker => {
-            marker.style.display = "block";
-            marker.offsetWidth;
-            marker.classList.add("ripple-in");
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          });
-        } else {
-          markers.forEach(marker => {
-            if (marker.dataset.labelVisible !== "true") {
-              marker.classList.add("ripple-out");
-              setTimeout(() => {
-                marker.classList.remove("ripple-out");
-                marker.style.display = "none";
-              }, 300);
-            }
-          });
-        }
-      });
-
-      let seasonsVisible = false;
-      const toggleSeasons = document.getElementById("toggleSeasons");
-      toggleSeasons.addEventListener("change", function() {
-        seasonsVisible = this.checked;
-        if (seasonsVisible) {
-          seasonOverlay.style.opacity = 1;
-        } else {
-          seasonOverlay.style.opacity = 0;
-        }
-      });
-
-      let temperaturesVisible = false;
-      const toggleTemperatures = document.getElementById("toggleTemperatures");
-      toggleTemperatures.addEventListener("change", function() {
-        temperaturesVisible = this.checked;
-        if (temperaturesVisible) {
-          temperatureElements.forEach(temp => temp.classList.add("visible"));
-        } else {
-          temperatureElements.forEach(temp => temp.classList.remove("visible"));
-        }
-      });
-
-      let clockHandsVisible = false;
-      const toggleClockHands = document.getElementById("toggleClockHands");
-      toggleClockHands.addEventListener("change", function() {
-        clockHandsVisible = this.checked;
-        const hourHand = document.getElementById("hourHand");
-        const minuteHand = document.getElementById("minuteHand");
-        const secondHand = document.getElementById("secondHand");
-        if (clockHandsVisible) {
-          hourHand.style.display = "block";
-          minuteHand.style.display = "block";
-          secondHand.style.display = "block";
-        } else {
-          hourHand.style.display = "none";
-          minuteHand.style.display = "none";
-          secondHand.style.display = "none";
-        }
-      });
+        });
+      }
 
       clock.addEventListener("mousemove", function(e) {
         const mouseX = e.clientX;
@@ -1008,6 +904,22 @@
         const secondAngle = seconds * 6;
         document.getElementById("secondHand").style.transform = "rotate(" + secondAngle + "deg)";
       }
+
+      document.getElementById("toggleSeasons").addEventListener("change", function() {
+        seasonOverlay.style.opacity = this.checked ? 0.8 : 0;
+      });
+
+      document.getElementById("toggleTemperatures").addEventListener("change", function() {
+        temperatureElements.forEach(temp => {
+          temp.classList.toggle("visible", this.checked);
+        });
+      });
+
+      document.getElementById("toggleClockHands").addEventListener("change", function() {
+        document.getElementById("hourHand").style.display = this.checked ? "block" : "none";
+        document.getElementById("minuteHand").style.display = this.checked ? "block" : "none";
+        document.getElementById("secondHand").style.display = this.checked ? "block" : "none";
+      });
 
       updateHands();
       setInterval(updateHands, 1000);
