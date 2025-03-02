@@ -162,11 +162,11 @@
       border-radius: 50%;
       transition: transform 0.2s ease;
     }
-    .major-holiday-dot { background: red; }
-    .minor-holiday-dot { background: orange; }
-    .birthday-dot { background: blue; }
-    .custom-dot { background: green; }
-    .dpt-dot { background: pink; }
+    .major-holiday-dot { background: rgb(255, 165, 0); } /* Orange */
+    .minor-holiday-dot { background: rgb(255, 0, 0); }   /* Red */
+    .birthday-dot { background: rgb(255, 8, 201); }      /* Violet */
+    .custom-dot { background: rgb(4, 255, 0); }          /* Green */
+    .dpt-dot { background: rgb(13, 126, 255); }          /* Blue-ish */
     .active .major-holiday-dot,
     .active .minor-holiday-dot,
     .active .birthday-dot,
@@ -206,6 +206,7 @@
       justify-content: flex-end;
       align-items: center;
       font-size: 0.9em;
+      color: #D3D3D3; /* Light gray */
       cursor: pointer;
       width: 100%;
       max-width: 200px;
@@ -231,10 +232,17 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      color: white;
       font-size: 12px;
       font-weight: bold;
     }
+    #toggleMajorHolidays:checked + .checkbox-custom::after { color: rgb(255, 165, 0); } /* Orange */
+    #toggleMinorHolidays:checked + .checkbox-custom::after { color: rgb(255, 0, 0); }   /* Red */
+    #toggleBirthdays:checked + .checkbox-custom::after { color: rgb(255, 8, 201); }     /* Violet */
+    #toggleDptEvents:checked + .checkbox-custom::after { color: rgb(13, 126, 255); }    /* Blue-ish */
+    #toggleCustomEvent input:checked + .checkbox-custom::after { color: rgb(4, 255, 0); } /* Green */
+    #toggleSeasons:checked + .checkbox-custom::after,
+    #toggleTemperatures:checked + .checkbox-custom::after,
+    #toggleClockHands:checked + .checkbox-custom::after { color: white; } /* White for non-colored */
     #toggleCustomEvent {
       display: none;
     }
@@ -412,14 +420,6 @@
         const today = new Date();
         let holidayYear = today.getFullYear();
         let holidayMonth, holidayDay;
-        if (name === "Inauguration Day") {
-          while (holidayYear % 4 !== 1) holidayYear++; // Next year where year % 4 === 1 (2021, 2025, etc.)
-          holidayMonth = month;
-          holidayDay = day;
-          const holidayDate = new Date(holidayYear, holidayMonth - 1, holidayDay);
-          if (holidayDate <= today) holidayYear += 4;
-          return { name: name, month: holidayMonth, day: holidayDay };
-        }
         if (calcFunc) {
           const result = calcFunc(holidayYear);
           holidayMonth = result.month;
@@ -671,7 +671,7 @@
       function createCustomMarker(data) { return createMarker(data, "custom"); }
       function createDptMarker(data) { return createMarker(data, "dpt"); }
 
-      // Major Holidays
+      // Major Holidays (Orange)
       const majorHolidays = [
         { name: "Independence Day", month: 7, day: 4 },
         { name: "Thanksgiving", calc: (year) => ({ month: 11, day: nthWeekdayOfMonth(year, 11, 4, 4) }) },
@@ -686,7 +686,7 @@
       ].map(holiday => getNextHolidayDate(holiday.name, new Date().getFullYear(), holiday.month, holiday.day, holiday.calc));
       majorHolidays.forEach(holiday => createMajorHolidayMarker(holiday));
 
-      // Minor Holidays
+      // Minor Holidays (Red)
       const minorHolidays = [
         { name: "Memorial Day", calc: (year) => ({ month: 5, day: lastWeekdayOfMonth(year, 5, 1) }) },
         { name: "Labor Day", calc: (year) => ({ month: 9, day: nthWeekdayOfMonth(year, 9, 1, 1) }) },
@@ -695,7 +695,6 @@
         { name: "MLK Day", calc: (year) => ({ month: 1, day: nthWeekdayOfMonth(year, 1, 1, 3) }) },
         { name: "Presidents' Day", calc: (year) => ({ month: 2, day: nthWeekdayOfMonth(year, 2, 1, 3) }) },
         { name: "Juneteenth", month: 6, day: 19 },
-        { name: "Inauguration Day", month: 1, day: 20 }, // Handled specially in getNextHolidayDate
         { name: "Groundhog Day", month: 2, day: 2 },
         { name: "April Fool's", month: 4, day: 1 },
         { name: "Good Friday", calc: (year) => {
