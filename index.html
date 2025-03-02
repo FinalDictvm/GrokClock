@@ -564,11 +564,18 @@
         const dx = endX - startX;
         const dy = endY - startY;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const angleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+        let angleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+        // Normalize angle to avoid large rotations
+        const prevAngle = marker.connectorElement.dataset.prevAngle ? parseFloat(marker.connectorElement.dataset.prevAngle) : angleDeg;
+        let angleDiff = angleDeg - prevAngle;
+        if (angleDiff > 180) angleDiff -= 360;
+        if (angleDiff < -180) angleDiff += 360;
+        angleDeg = prevAngle + angleDiff;
+        marker.connectorElement.dataset.prevAngle = angleDeg;
         marker.connectorElement.style.left = startX + "px";
         marker.connectorElement.style.top = startY + "px";
         marker.connectorElement.style.width = distance + "px";
-        marker.connectorElement.style.transform = "rotate(" + angleDeg + "deg)";
+        marker.connectorElement.style.transform = `rotate(${angleDeg}deg)`;
       }
 
       /* Removes a label and connector, keeping dot if toggle is on */
@@ -636,11 +643,12 @@
           connector.className = "connector";
           const dotColor = dotStyle.backgroundColor;
           connector.style.backgroundColor = dotColor;
+          connector.dataset.prevAngle = "0"; // Initialize angle tracking
           clock.appendChild(connector);
           marker.labelElement = label;
           marker.connectorElement = connector;
           marker.dataset.labelVisible = "true";
-          updateConnector(marker);
+          updateConnector(marker); // Set initial position immediately
           let isDragging = false;
           let offsetX, offsetY;
           label.addEventListener("mousedown", function(e) {
@@ -765,11 +773,9 @@
             dot.style.left = (markerCenterX - 10) + "px";
             dot.style.top = (markerCenterY - 10) + "px";
             if (dot.labelElement) {
-              dot.labelElement.style.transition = "top 0.3s ease, left 0.3s ease";
               dot.connectorElement.style.transition = "top 0.3s ease, left 0.3s ease, width 0.3s ease, transform 0.3s ease";
               updateConnector(dot);
               setTimeout(() => {
-                dot.labelElement.style.transition = "";
                 dot.connectorElement.style.transition = "";
               }, 300);
             }
