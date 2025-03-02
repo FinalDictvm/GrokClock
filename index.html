@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>Analog Clock with Months, Holidays, Birthdays, Seasons & DPT Events</title>
   <style>
-    /* General body styling for dark background and centered content */
     body {
       background: #333;
       font-family: sans-serif;
@@ -12,8 +11,6 @@
       color: white;
       position: relative;
     }
-
-    /* Display for event details when hovering over a marker */
     #holidayDisplay {
       position: absolute;
       top: 360px;
@@ -22,13 +19,11 @@
       font-size: 1.2em;
       opacity: 0;
       transition: opacity 0.2s ease-in-out;
-      pointer-events: none; /* Prevents interference with mouse events */
+      pointer-events: none;
     }
     #holidayDisplay .event-date {
-      font-size: 0.6em; /* Smaller font for date */
+      font-size: 0.6em;
     }
-
-    /* Clock container with circular design and shadow effects */
     .clock {
       width: 300px;
       height: 300px;
@@ -41,8 +36,6 @@
                   inset -0.5px 0.5px 5px rgba(0, 0, 0, 0.3);
       filter: drop-shadow(-5px 10px 8px rgba(0, 0, 0, 0.2));
     }
-
-    /* Seasonal overlay with conic gradient for visual effect */
     .season-overlay {
       position: absolute;
       top: 0;
@@ -62,8 +55,6 @@
         rgba(255,165,0,0.5) 294deg, rgba(255,72,0,0.4) 360deg
       );
     }
-
-    /* Month labels around the clock */
     .month {
       position: absolute;
       width: 40px;
@@ -74,8 +65,6 @@
       text-shadow: 0 0 10px rgba(255,255,255,1),
                    -2px 2px 2px rgba(0,0,0,0.4);
     }
-
-    /* Ticks marking month boundaries */
     .tick {
       position: absolute;
       width: 2px;
@@ -85,8 +74,6 @@
       z-index: 2;
       box-shadow: 0 1px 2px rgba(0,0,0,0.4);
     }
-
-    /* Clock hands for month, hour, minute, and second */
     .hand {
       width: 4px;
       height: 120px;
@@ -139,8 +126,6 @@
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
       display: none;
     }
-
-    /* Center dot of the clock */
     .center {
       width: 10px;
       height: 10px;
@@ -154,8 +139,6 @@
       box-shadow: -0.5px 2px 4px rgba(0,0,0,0.4),
                   inset 2px -2px 5px rgba(0,0,0,0.7);
     }
-
-    /* Event markers around the clock edge */
     .marker {
       position: absolute;
       width: 20px;
@@ -164,10 +147,8 @@
       z-index: 5;
       cursor: pointer;
       display: none;
-      transition: left 0.3s ease, top 0.3s ease; /* Smooth sliding for stacking */
+      transition: left 0.3s ease, top 0.3s ease;
     }
-
-    /* Dot styles for different event types */
     .major-holiday-dot,
     .minor-holiday-dot,
     .birthday-dot,
@@ -180,8 +161,8 @@
       width: 4px;
       height: 4px;
       border-radius: 50%;
-      border: 1px solid white; /* White border for all dots */
-      transition: transform 0.2s ease; /* For scaling on hover */
+      border: 1px solid white;
+      transition: transform 0.2s ease;
     }
     .major-holiday-dot { background: rgb(255, 165, 0); }
     .minor-holiday-dot { background: rgb(255, 0, 0); }
@@ -193,10 +174,8 @@
     .active .birthday-dot,
     .active .custom-dot,
     .active .dpt-dot {
-      transform: translate(-50%, -50%) scale(2); /* Enlarge on hover */
+      transform: translate(-50%, -50%) scale(2);
     }
-
-    /* Labels for selected events */
     .event-label {
       position: absolute;
       white-space: nowrap;
@@ -207,8 +186,6 @@
       user-select: none;
       line-height: 1;
     }
-
-    /* Connector lines between dots and labels */
     .connector {
       position: absolute;
       height: 1px;
@@ -216,8 +193,6 @@
       pointer-events: none;
       z-index: 6;
     }
-
-    /* Control panel for toggling features */
     .controls {
       margin-top: 105px;
       display: flex;
@@ -271,10 +246,8 @@
     #toggleTemperatures:checked + .checkbox-custom::after,
     #toggleClockHands:checked + .checkbox-custom::after { color: white; }
     #toggleCustomEventsLabel {
-      display: none; /* Hidden until first custom event */
+      display: none;
     }
-
-    /* Button for adding custom events */
     .custom-event-button {
       width: 300px;
       margin-left: auto;
@@ -292,8 +265,6 @@
       color: white;
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
     }
-
-    /* Animation keyframes for marker appearance/disappearance */
     @keyframes rippleIn {
       0% { transform: scale(0.5); opacity: 0; }
       40% { transform: scale(2); opacity: 1; }
@@ -306,8 +277,6 @@
     }
     .ripple-in { animation: rippleIn 0.3s forwards; }
     .ripple-out { animation: rippleOut 0.3s forwards; }
-
-    /* Temperature labels inside the clock */
     .temperature {
       font-size: 0.8em;
       color: white;
@@ -331,7 +300,6 @@
   </style>
 </head>
 <body>
-  <!-- Clock container holding all visual elements -->
   <div class="clock" id="clock">
     <div class="season-overlay" id="seasonOverlay"></div>
     <div class="hand" id="hand"></div>
@@ -341,8 +309,6 @@
     <div class="center"></div>
   </div>
   <div id="holidayDisplay"></div>
-
-  <!-- Controls for toggling clock features -->
   <div class="controls">
     <label class="checkbox-label">
       Major Holidays
@@ -388,21 +354,16 @@
   <div class="custom-event-button">
     <button id="addCustomEvent">Add Custom Event</button>
   </div>
-
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      // Core clock elements and constants
       const clock = document.getElementById("clock");
       const seasonOverlay = document.getElementById("seasonOverlay");
-      const centerX = 150, centerY = 150; // Clock center coordinates
-      const triggerRadius = 15; // Proximity for marker hover detection
+      const centerX = 150, centerY = 150;
+      const triggerRadius = 15;
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const averageTemps = [30, 35, 45, 55, 65, 75, 80, 78, 70, 60, 50, 35];
       const temperatureElements = [];
-
-      // Event type hierarchy for stacking order
       const typePriority = ["major-holiday", "minor-holiday", "birthday", "dpt", "custom"];
-      // Visibility map tracks toggle states for each event type
       const visibilityMap = {
         "major-holiday": false,
         "minor-holiday": false,
@@ -411,7 +372,6 @@
         "custom": false
       };
 
-      /* Adds ordinal suffix (st, nd, rd, th) to day numbers */
       function getDaySuffix(day) {
         if (day >= 11 && day <= 13) return "th";
         switch(day % 10) {
@@ -422,13 +382,11 @@
         }
       }
 
-      /* Formats date as "Month Day" with suffix (e.g., "January 1st") */
       function formatDate(month, day) {
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         return monthNames[month - 1] + " " + day + getDaySuffix(day);
       }
 
-      /* Calculates the nth weekday of a month (e.g., 3rd Monday of January) */
       function nthWeekdayOfMonth(year, month, weekday, n) {
         const firstDay = new Date(year, month - 1, 1);
         const firstWeekday = firstDay.getDay();
@@ -436,7 +394,6 @@
         return 1 + offset + (n - 1) * 7;
       }
 
-      /* Finds the last occurrence of a weekday in a month (e.g., last Monday of May) */
       function lastWeekdayOfMonth(year, month, weekday) {
         const lastDay = new Date(year, month, 0).getDate();
         const date = new Date(year, month - 1, lastDay);
@@ -446,7 +403,6 @@
         return date.getDate();
       }
 
-      /* Calculates Easter Sunday date using Meeus/Jones/Butcher algorithm */
       function easterSunday(year) {
         const a = year % 19;
         const b = Math.floor(year / 100);
@@ -465,7 +421,6 @@
         return { month: month, day: day };
       }
 
-      /* Determines the next occurrence of a holiday, adjusting for past dates */
       function getNextHolidayDate(name, year, month, day, calcFunc) {
         const today = new Date();
         let holidayYear = today.getFullYear();
@@ -490,12 +445,11 @@
         return { name: name, month: holidayMonth, day: holidayDay };
       }
 
-      /* Initialize month labels, ticks, and temperatures around the clock */
       months.forEach((month, index) => {
         const marker = document.createElement("div");
         marker.className = "month";
         marker.innerText = month;
-        marker.style.color = ([3,6,9,12].includes(index + 1)) ? "red" : "black"; // Highlight quarters
+        marker.style.color = ([3,6,9,12].includes(index + 1)) ? "red" : "black";
         marker.style.fontSize = ([3,6,9,12].includes(index + 1)) ? "1.0em" : "0.9em";
         const angle = index * 30 + 30;
         const radian = (angle - 90) * Math.PI / 180;
@@ -532,7 +486,6 @@
         clock.appendChild(temp);
       });
 
-      /* Updates the connector line between a dot and its label */
       function updateConnector(marker) {
         if (!marker.connectorElement || !marker.labelElement) return;
         const markerStyle = window.getComputedStyle(marker);
@@ -565,7 +518,6 @@
         const dy = endY - startY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         let angleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
-        // Normalize angle to avoid large rotations
         const prevAngle = marker.connectorElement.dataset.prevAngle ? parseFloat(marker.connectorElement.dataset.prevAngle) : angleDeg;
         let angleDiff = angleDeg - prevAngle;
         if (angleDiff > 180) angleDiff -= 360;
@@ -578,7 +530,6 @@
         marker.connectorElement.style.transform = `rotate(${angleDeg}deg)`;
       }
 
-      /* Removes a label and connector, keeping dot if toggle is on */
       function hideLabel(marker) {
         if (marker.labelElement) { marker.labelElement.remove(); marker.labelElement = null; }
         if (marker.connectorElement) { marker.connectorElement.remove(); marker.connectorElement = null; }
@@ -594,7 +545,6 @@
         updateAllDotPositions();
       }
 
-      /* Toggles a label on/off for a marker, with immediate dragging */
       function toggleMarkerLabel(marker) {
         if (marker.dataset.labelVisible === "true") {
           hideLabel(marker);
@@ -643,12 +593,12 @@
           connector.className = "connector";
           const dotColor = dotStyle.backgroundColor;
           connector.style.backgroundColor = dotColor;
-          connector.dataset.prevAngle = "0"; // Initialize angle tracking
+          connector.dataset.prevAngle = "0";
           clock.appendChild(connector);
           marker.labelElement = label;
           marker.connectorElement = connector;
           marker.dataset.labelVisible = "true";
-          updateConnector(marker); // Set initial position immediately
+          setTimeout(() => updateConnector(marker), 0); // Delay to ensure DOM render
           let isDragging = false;
           let offsetX, offsetY;
           label.addEventListener("mousedown", function(e) {
@@ -657,6 +607,7 @@
             const clockRect = clock.getBoundingClientRect();
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
+            connector.style.transition = "none"; // No transition during drag
             e.preventDefault();
           });
           document.addEventListener("mousemove", function(e) {
@@ -670,6 +621,7 @@
           });
           document.addEventListener("mouseup", function() {
             isDragging = false;
+            connector.style.transition = ""; // Restore for sliding
           });
           label.addEventListener("dblclick", function(e) {
             e.stopPropagation();
@@ -679,7 +631,6 @@
         updateAllDotPositions();
       }
 
-      /* Finds the closest marker to the mouse cursor for hover detection */
       function getClosestMarker(x, y) {
         let activeMarker = null;
         let minDistance = Infinity;
@@ -699,10 +650,9 @@
         return activeMarker;
       }
 
-      /* Creates a marker for an event at its base circumference position */
       function createMarker(data, type) {
         if (!typePriority.includes(type)) {
-          typePriority.push(type); // Dynamically add new types to hierarchy
+          typePriority.push(type);
         }
         const currentYear = new Date().getFullYear();
         const totalDays = new Date(currentYear, data.month, 0).getDate();
@@ -722,7 +672,7 @@
         container.dataset.day = data.day;
         container.dataset.year = data.year || "";
         container.dataset.type = type;
-        container.dataset.order = Date.now(); // For sorting same-name events
+        container.dataset.order = Date.now();
         container.dataset.baseLeft = (markerCenterX - 10) + "px";
         container.dataset.baseTop = (markerCenterY - 10) + "px";
         container.style.display = "none";
@@ -733,10 +683,10 @@
         return container;
       }
 
-      /* Updates positions of all visible markers, applying hierarchy and stacking */
       function updateAllDotPositions() {
         const dateToVisibleDots = {};
         const markers = clock.querySelectorAll(".marker");
+        const slidingDots = [];
         markers.forEach(marker => {
           const type = marker.dataset.type;
           const isVisible = visibilityMap[type] || marker.dataset.labelVisible === "true";
@@ -745,6 +695,7 @@
             const dateKey = `${marker.dataset.month}-${marker.dataset.day}`;
             if (!dateToVisibleDots[dateKey]) dateToVisibleDots[dateKey] = [];
             dateToVisibleDots[dateKey].push(marker);
+            if (marker.dataset.labelVisible === "true") slidingDots.push(marker);
           } else {
             marker.style.display = "none";
           }
@@ -772,18 +723,34 @@
             const markerCenterY = centerY + radius * Math.sin(radian);
             dot.style.left = (markerCenterX - 10) + "px";
             dot.style.top = (markerCenterY - 10) + "px";
-            if (dot.labelElement) {
-              dot.connectorElement.style.transition = "top 0.3s ease, left 0.3s ease, width 0.3s ease, transform 0.3s ease";
-              updateConnector(dot);
-              setTimeout(() => {
-                dot.connectorElement.style.transition = "";
-              }, 300);
-            }
           });
         });
+
+        // Sync connector updates during slide
+        if (slidingDots.length > 0) {
+          const startTime = performance.now();
+          const duration = 300; // Match dot transition duration
+          function animateConnectors(timestamp) {
+            const elapsed = timestamp - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            slidingDots.forEach(dot => {
+              if (dot.labelElement) updateConnector(dot);
+            });
+            if (progress < 1) {
+              requestAnimationFrame(animateConnectors);
+            } else {
+              slidingDots.forEach(dot => {
+                if (dot.connectorElement) dot.connectorElement.style.transition = "";
+              });
+            }
+          }
+          slidingDots.forEach(dot => {
+            if (dot.connectorElement) dot.connectorElement.style.transition = "top 0.3s ease, left 0.3s ease, width 0.3s ease, transform 0.3s ease";
+          });
+          requestAnimationFrame(animateConnectors);
+        }
       }
 
-      // Initialize event data
       const majorHolidays = [
         { name: "Independence Day", month: 7, day: 4 },
         { name: "Thanksgiving", calc: (year) => ({ month: 11, day: nthWeekdayOfMonth(year, 11, 4, 4) }) },
@@ -818,7 +785,6 @@
       ].map(h => getNextHolidayDate(h.name, new Date().getFullYear(), h.month, h.day, h.calc));
       minorHolidays.forEach(h => createMarker(h, "minor-holiday"));
 
-      /* Fetches birthdays from Google Sheets asynchronously */
       async function fetchBirthdays() {
         try {
           const spreadsheetId = '1s2Dsf7QsAZkm49HAwrl8bhnNP5Z0t4Uwjqy2hSly108';
@@ -860,7 +826,6 @@
       ];
       dptEvents.forEach(event => createMarker(event, "dpt"));
 
-      /* Toggle handlers for each event type */
       document.getElementById("toggleMajorHolidays").addEventListener("change", function() {
         visibilityMap["major-holiday"] = this.checked;
         const markers = clock.querySelectorAll(".major-holiday-marker");
@@ -976,7 +941,6 @@
         setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
       });
 
-      /* Handles adding custom events via user input */
       document.getElementById("addCustomEvent").addEventListener("click", () => {
         const name = prompt("Enter event name:");
         const date = prompt("Enter date (MM-DD):");
@@ -1002,24 +966,20 @@
         }
       });
 
-      /* Toggles seasonal overlay visibility */
       document.getElementById("toggleSeasons").addEventListener("change", function() {
         seasonOverlay.style.opacity = this.checked ? 1 : 0;
       });
 
-      /* Toggles temperature labels visibility */
       document.getElementById("toggleTemperatures").addEventListener("change", function() {
         temperatureElements.forEach(temp => temp.classList.toggle("visible", this.checked));
       });
 
-      /* Toggles clock hands visibility */
       document.getElementById("toggleClockHands").addEventListener("change", function() {
         document.getElementById("hourHand").style.display = this.checked ? "block" : "none";
         document.getElementById("minuteHand").style.display = this.checked ? "block" : "none";
         document.getElementById("secondHand").style.display = this.checked ? "block" : "none";
       });
 
-      /* Handles mouse hover to show event details */
       clock.addEventListener("mousemove", function(e) {
         const mouseX = e.clientX;
         const mouseY = e.clientY;
@@ -1047,7 +1007,6 @@
         }
       });
 
-      /* Handles clicking to toggle labels */
       clock.addEventListener("click", function(e) {
         const clickX = e.clientX;
         const clickY = e.clientY;
@@ -1058,14 +1017,12 @@
         }
       });
 
-      /* Clears hover effects when mouse leaves clock */
       clock.addEventListener("mouseleave", function() {
         const markers = clock.querySelectorAll(".marker");
         markers.forEach(marker => marker.classList.remove("active"));
         document.getElementById("holidayDisplay").style.opacity = 0;
       });
 
-      /* Updates clock hands to reflect current time */
       function updateHands() {
         const now = new Date();
         const monthIndex = now.getMonth() + 1;
@@ -1088,7 +1045,7 @@
       }
 
       updateHands();
-      setInterval(updateHands, 1000); // Update clock hands every second
+      setInterval(updateHands, 1000);
     });
   </script>
 </body>
