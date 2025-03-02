@@ -573,6 +573,9 @@
         container.style.top = (markerCenterY - 10) + "px";
         container.dataset.name = data.name;
         container.dataset.date = formatDate(data.month, data.day);
+        container.dataset.month = data.month;
+        container.dataset.day = data.day;
+        container.dataset.year = data.year;
         container.style.display = "none";
         const dot = document.createElement("div");
         dot.className = `${type}-dot`;
@@ -605,25 +608,30 @@
           const response = await fetch(url);
           const text = await response.text();
           const cleanedText = text
-            .replace(/\/\*.*?\*\//g, '') // Remove /*O_o*/ comments
+            .replace(/\/\*.*?\*\//g, '')
             .replace(/google\.visualization\.Query\.setResponse\((.*)\);/, '$1')
             .trim();
           const json = JSON.parse(cleanedText);
           const rows = json.table.rows;
           const birthdays = rows.map(row => {
-            const name = row.c[0].v + "'s Birthday"; // Column A: Name
-            const dateStr = row.c[1].v;              // Column B: e.g., "Date(2020,1,5)"
-            console.log('Raw date string:', dateStr); // Debug raw value
-            // Parse Date(year,month,day) format
-            const match = dateStr.match(/Date\((\d+),(\d+),(\d+)\)/);
-            if (!match) throw new Error(`Invalid date format: ${dateStr}`);
-            const [, year, month, day] = match.map(Number);
-            return {
-              name: name,
-              month: month, // Already 0-based from Google Sheets (0-11)
-              day: day      // 1-31
-            };
-          });
+            try {
+              const name = row.c[0] && row.c[0].v ? row.c[0].v + "'s Birthday" : null;
+              const dateStr = row.c[1] && row.c[1].v ? row.c[1].v : null;
+              if (!name || !dateStr) return null;
+              const match = dateStr.match(/Date\((\d+),(\d+),(\d+)\)/);
+              if (!match) throw new Error(`Invalid date format: ${dateStr}`);
+              const [, year, month, day] = match.map(Number);
+              return {
+                name: name,
+                month: month,
+                day: day,
+                year: year
+              };
+            } catch (error) {
+              console.warn(`Skipping entry due to error: ${error.message}`);
+              return null;
+            }
+          }).filter(birthday => birthday !== null);
           console.log('Parsed birthdays:', birthdays);
           return birthdays;
         } catch (error) {
@@ -827,7 +835,18 @@
         const display = document.getElementById("holidayDisplay");
         if (activeMarker) {
           activeMarker.classList.add("active");
-          display.innerHTML = activeMarker.dataset.name + "<br><span class='event-date'>" + activeMarker.dataset.date + "</span>";
+          const today = new Date();
+          const birthYear = activeMarker.dataset.year ? Number(activeMarker.dataset.year) : null;
+          let ageText = '';
+          if (birthYear) {
+            const currentYear = today.getFullYear();
+            const month = Number(activeMarker.dataset.month);
+            const day = Number(activeMarker.dataset.day);
+            const birthdayThisYear = new Date(currentYear, month, day);
+            const age = currentYear - birthYear + (today < birthdayThisYear ? 0 : 1);
+            ageText = ` <span style="color: gray">(turning ${age})</span>`;
+          }
+          display.innerHTML = activeMarker.dataset.name + "<br><span class='event-date'>" + activeMarker.dataset.date + ageText + "</span>";
           display.style.opacity = 1;
         } else {
           display.style.opacity = 0;
