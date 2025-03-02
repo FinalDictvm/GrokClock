@@ -148,7 +148,8 @@
       cursor: pointer;
       display: none;
     }
-    .holiday-dot,
+    .major-holiday-dot,
+    .minor-holiday-dot,
     .birthday-dot,
     .custom-dot,
     .dpt-dot {
@@ -161,11 +162,13 @@
       border-radius: 50%;
       transition: transform 0.2s ease;
     }
-    .holiday-dot { background: red; }
+    .major-holiday-dot { background: red; }
+    .minor-holiday-dot { background: orange; }
     .birthday-dot { background: blue; }
     .custom-dot { background: green; }
     .dpt-dot { background: pink; }
-    .active .holiday-dot,
+    .active .major-holiday-dot,
+    .active .minor-holiday-dot,
     .active .birthday-dot,
     .active .custom-dot,
     .active .dpt-dot {
@@ -299,8 +302,13 @@
   <div id="holidayDisplay"></div>
   <div class="controls">
     <label class="checkbox-label">
-      Holidays
-      <input type="checkbox" id="toggleHolidays">
+      Major Holidays
+      <input type="checkbox" id="toggleMajorHolidays">
+      <span class="checkbox-custom"></span>
+    </label>
+    <label class="checkbox-label">
+      Minor Holidays
+      <input type="checkbox" id="toggleMinorHolidays">
       <span class="checkbox-custom"></span>
     </label>
     <label class="checkbox-label">
@@ -359,14 +367,87 @@
 
       function formatDate(month, day) {
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        return monthNames[month - 1] + " " + day + getDaySuffix(day); // month is now 1-12, adjust to 0-11 for array
+        return monthNames[month - 1] + " " + day + getDaySuffix(day);
+      }
+
+      // Helper: Get nth weekday of a month (e.g., 3rd Monday)
+      function nthWeekdayOfMonth(year, month, weekday, n) { // month: 1-12, weekday: 0=Sun, 1=Mon, ..., n: 1st, 2nd, etc.
+        const firstDay = new Date(year, month - 1, 1);
+        const firstWeekday = firstDay.getDay();
+        const offset = (weekday - firstWeekday + 7) % 7;
+        return 1 + offset + (n - 1) * 7;
+      }
+
+      // Helper: Get last weekday of a month
+      function lastWeekdayOfMonth(year, month, weekday) { // month: 1-12, weekday: 0=Sun, 1=Mon, ...
+        const lastDay = new Date(year, month, 0).getDate();
+        const date = new Date(year, month - 1, lastDay);
+        while (date.getDay() !== weekday) {
+          date.setDate(date.getDate() - 1);
+        }
+        return date.getDate();
+      }
+
+      // Helper: Calculate Easter Sunday (Meeus/Jones/Butcher algorithm)
+      function easterSunday(year) {
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31); // 3 or 4
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        return { month: month, day: day };
+      }
+
+      // Helper: Get next occurrence of a holiday
+      function getNextHolidayDate(name, year, month, day, calcFunc) {
+        const today = new Date();
+        let holidayYear = today.getFullYear();
+        let holidayMonth, holidayDay;
+        if (name === "Inauguration Day") {
+          while (holidayYear % 4 !== 1) holidayYear++; // Next year where year % 4 === 1 (2021, 2025, etc.)
+          holidayMonth = month;
+          holidayDay = day;
+          const holidayDate = new Date(holidayYear, holidayMonth - 1, holidayDay);
+          if (holidayDate <= today) holidayYear += 4;
+          return { name: name, month: holidayMonth, day: holidayDay };
+        }
+        if (calcFunc) {
+          const result = calcFunc(holidayYear);
+          holidayMonth = result.month;
+          holidayDay = result.day;
+        } else {
+          holidayMonth = month;
+          holidayDay = day;
+        }
+        const holidayDate = new Date(holidayYear, holidayMonth - 1, holidayDay);
+        if (holidayDate <= today) {
+          holidayYear++;
+          if (calcFunc) {
+            const result = calcFunc(holidayYear);
+            holidayMonth = result.month;
+            holidayDay = result.day;
+          } else {
+            holidayMonth = month;
+            holidayDay = day;
+          }
+        }
+        return { name: name, month: holidayMonth, day: holidayDay };
       }
 
       months.forEach((month, index) => {
         const marker = document.createElement("div");
         marker.className = "month";
         marker.innerText = month;
-        marker.style.color = ([3,6,9,12].includes(index + 1)) ? "red" : "black"; // Now 1-12
+        marker.style.color = ([3,6,9,12].includes(index + 1)) ? "red" : "black";
         marker.style.fontSize = ([3,6,9,12].includes(index + 1)) ? "1.0em" : "0.9em";
         const angle = index * 30 + 30;
         const radian = (angle - 90) * Math.PI / 180;
@@ -445,7 +526,8 @@
         if (marker.labelElement) { marker.labelElement.remove(); marker.labelElement = null; }
         if (marker.connectorElement) { marker.connectorElement.remove(); marker.connectorElement = null; }
         marker.dataset.labelVisible = "false";
-        if ((marker.classList.contains("holiday-marker") && !holidaysVisible) ||
+        if ((marker.classList.contains("major-holiday-marker") && !majorHolidaysVisible) ||
+            (marker.classList.contains("minor-holiday-marker") && !minorHolidaysVisible) ||
             (marker.classList.contains("birthday-marker") && !birthdaysVisible) ||
             (marker.classList.contains("custom-marker") && !customEventsVisible) ||
             (marker.classList.contains("dpt-marker") && !dptEventsVisible)) {
@@ -560,9 +642,9 @@
 
       function createMarker(data, type) {
         const currentYear = new Date().getFullYear();
-        const totalDays = new Date(currentYear, data.month, 0).getDate(); // data.month is 1-12, adjust to 0-11 internally
+        const totalDays = new Date(currentYear, data.month, 0).getDate();
         const fraction = (data.day - 1) / totalDays;
-        const angle = (data.month - 1 + fraction + 1) * 30; // Subtract 1 to get 0-11 for angle calc
+        const angle = (data.month - 1 + fraction + 1) * 30;
         const radian = (angle - 90) * Math.PI / 180;
         const radius = 160;
         const markerCenterX = centerX + radius * Math.cos(radian);
@@ -584,22 +666,47 @@
         return container;
       }
 
+      function createMajorHolidayMarker(data) { return createMarker(data, "major-holiday"); }
+      function createMinorHolidayMarker(data) { return createMarker(data, "minor-holiday"); }
       function createCustomMarker(data) { return createMarker(data, "custom"); }
       function createDptMarker(data) { return createMarker(data, "dpt"); }
 
-      const holidays = [
-        { name: "New Year's Day", month: 1, day: 1 },
-        { name: "Martin Luther King Jr. Day", month: 1, day: 15 },
-        { name: "Presidents' Day", month: 2, day: 20 },
-        { name: "Memorial Day", month: 5, day: 31 },
+      // Major Holidays
+      const majorHolidays = [
         { name: "Independence Day", month: 7, day: 4 },
-        { name: "Labor Day", month: 9, day: 7 },
-        { name: "Columbus Day", month: 10, day: 12 },
+        { name: "Thanksgiving", calc: (year) => ({ month: 11, day: nthWeekdayOfMonth(year, 11, 4, 4) }) },
+        { name: "Christmas", month: 12, day: 25 },
+        { name: "New Year's", month: 1, day: 1 },
+        { name: "Easter", calc: (year) => easterSunday(year) },
+        { name: "Valentine's Day", month: 2, day: 14 },
+        { name: "St. Patrick's Day", month: 3, day: 17 },
+        { name: "Mother's Day", calc: (year) => ({ month: 5, day: nthWeekdayOfMonth(year, 5, 0, 2) }) },
+        { name: "Father's Day", calc: (year) => ({ month: 6, day: nthWeekdayOfMonth(year, 6, 0, 3) }) },
+        { name: "Halloween", month: 10, day: 31 }
+      ].map(holiday => getNextHolidayDate(holiday.name, new Date().getFullYear(), holiday.month, holiday.day, holiday.calc));
+      majorHolidays.forEach(holiday => createMajorHolidayMarker(holiday));
+
+      // Minor Holidays
+      const minorHolidays = [
+        { name: "Memorial Day", calc: (year) => ({ month: 5, day: lastWeekdayOfMonth(year, 5, 1) }) },
+        { name: "Labor Day", calc: (year) => ({ month: 9, day: nthWeekdayOfMonth(year, 9, 1, 1) }) },
+        { name: "Columbus Day", calc: (year) => ({ month: 10, day: nthWeekdayOfMonth(year, 10, 1, 2) }) },
         { name: "Veterans Day", month: 11, day: 11 },
-        { name: "Thanksgiving", month: 11, day: 25 },
-        { name: "Christmas Day", month: 12, day: 25 }
-      ];
-      holidays.forEach(holiday => createMarker(holiday, "holiday"));
+        { name: "MLK Day", calc: (year) => ({ month: 1, day: nthWeekdayOfMonth(year, 1, 1, 3) }) },
+        { name: "Presidents' Day", calc: (year) => ({ month: 2, day: nthWeekdayOfMonth(year, 2, 1, 3) }) },
+        { name: "Juneteenth", month: 6, day: 19 },
+        { name: "Inauguration Day", month: 1, day: 20 }, // Handled specially in getNextHolidayDate
+        { name: "Groundhog Day", month: 2, day: 2 },
+        { name: "April Fool's", month: 4, day: 1 },
+        { name: "Good Friday", calc: (year) => {
+          const easter = easterSunday(year);
+          const date = new Date(year, easter.month - 1, easter.day);
+          date.setDate(date.getDate() - 2);
+          return { month: date.getMonth() + 1, day: date.getDate() };
+        }},
+        { name: "Earth Day", month: 4, day: 22 }
+      ].map(holiday => getNextHolidayDate(holiday.name, new Date().getFullYear(), holiday.month, holiday.day, holiday.calc));
+      minorHolidays.forEach(holiday => createMinorHolidayMarker(holiday));
 
       async function fetchBirthdays() {
         try {
@@ -623,7 +730,7 @@
               const [, year, month, day] = match.map(Number);
               return {
                 name: name,
-                month: month + 1, // Convert 0-11 to 1-12
+                month: month + 1,
                 day: day,
                 year: year
               };
@@ -657,12 +764,37 @@
       ];
       dptEvents.forEach(event => createDptMarker(event));
 
-      let holidaysVisible = false;
-      const toggleHolidays = document.getElementById("toggleHolidays");
-      toggleHolidays.addEventListener("change", function() {
-        const markers = document.querySelectorAll(".holiday-marker");
-        holidaysVisible = this.checked;
-        if (holidaysVisible) {
+      let majorHolidaysVisible = false;
+      const toggleMajorHolidays = document.getElementById("toggleMajorHolidays");
+      toggleMajorHolidays.addEventListener("change", function() {
+        const markers = document.querySelectorAll(".major-holiday-marker");
+        majorHolidaysVisible = this.checked;
+        if (majorHolidaysVisible) {
+          markers.forEach(marker => {
+            marker.style.display = "block";
+            marker.offsetWidth;
+            marker.classList.add("ripple-in");
+            setTimeout(() => marker.classList.remove("ripple-in"), 300);
+          });
+        } else {
+          markers.forEach(marker => {
+            if (marker.dataset.labelVisible !== "true") {
+              marker.classList.add("ripple-out");
+              setTimeout(() => {
+                marker.classList.remove("ripple-out");
+                marker.style.display = "none";
+              }, 300);
+            }
+          });
+        }
+      });
+
+      let minorHolidaysVisible = false;
+      const toggleMinorHolidays = document.getElementById("toggleMinorHolidays");
+      toggleMinorHolidays.addEventListener("change", function() {
+        const markers = document.querySelectorAll(".minor-holiday-marker");
+        minorHolidaysVisible = this.checked;
+        if (minorHolidaysVisible) {
           markers.forEach(marker => {
             marker.style.display = "block";
             marker.offsetWidth;
@@ -719,7 +851,7 @@
           alert("Please enter the date in MM-DD format.");
           return;
         }
-        let month = parseInt(parts[0], 10); // Already 1-12
+        let month = parseInt(parts[0], 10);
         let day = parseInt(parts[1], 10);
         if (isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) {
           alert("Invalid date format.");
@@ -840,9 +972,9 @@
           let ageText = '';
           if (birthYear) {
             const currentYear = today.getFullYear();
-            const month = Number(activeMarker.dataset.month); // 1-12
+            const month = Number(activeMarker.dataset.month);
             const day = Number(activeMarker.dataset.day);
-            const birthdayThisYear = new Date(currentYear, month - 1, day); // Adjust to 0-11
+            const birthdayThisYear = new Date(currentYear, month - 1, day);
             const age = currentYear - birthYear + (today < birthdayThisYear ? 0 : 1);
             ageText = ` <span style="color: gray">(turning ${age})</span>`;
           }
@@ -871,13 +1003,13 @@
 
       function updateHands() {
         const now = new Date();
-        const monthIndex = now.getMonth() + 1; // Convert 0-11 to 1-12
+        const monthIndex = now.getMonth() + 1;
         const totalDays = new Date(now.getFullYear(), monthIndex, 0).getDate();
         const secondsInDay = 86400;
         const secondsPassedToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
         const fractionToday = secondsPassedToday / secondsInDay;
         const fractionMonth = (now.getDate() - 1 + fractionToday) / totalDays;
-        const monthAngle = (monthIndex - 1 + fractionMonth + 1) * 30; // Adjust to 0-11 for angle
+        const monthAngle = (monthIndex - 1 + fractionMonth + 1) * 30;
         document.getElementById("hand").style.transform = "rotate(" + monthAngle + "deg)";
         const hours = now.getHours() + now.getMinutes() / 60;
         const hourAngle = (hours % 12) * 30;
