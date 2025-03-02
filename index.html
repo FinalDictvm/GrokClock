@@ -359,15 +359,15 @@
 
       function formatDate(month, day) {
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        return monthNames[month] + " " + day + getDaySuffix(day);
+        return monthNames[month - 1] + " " + day + getDaySuffix(day); // month is now 1-12, adjust to 0-11 for array
       }
 
       months.forEach((month, index) => {
         const marker = document.createElement("div");
         marker.className = "month";
         marker.innerText = month;
-        marker.style.color = ([2,5,8,11].includes(index)) ? "red" : "black";
-        marker.style.fontSize = ([2,5,8,11].includes(index)) ? "1.0em" : "0.9em";
+        marker.style.color = ([3,6,9,12].includes(index + 1)) ? "red" : "black"; // Now 1-12
+        marker.style.fontSize = ([3,6,9,12].includes(index + 1)) ? "1.0em" : "0.9em";
         const angle = index * 30 + 30;
         const radian = (angle - 90) * Math.PI / 180;
         const radiusMarker = 130;
@@ -388,12 +388,12 @@
 
         const temp = document.createElement("div");
         temp.className = "temperature";
-        if (index === 2) temp.classList.add("march");
-        if (index === 4) temp.classList.add("may");
-        if (index === 5) temp.classList.add("june");
-        if (index === 6) temp.classList.add("july");
-        if (index === 7) temp.classList.add("august");
-        if (index === 8) temp.classList.add("september");
+        if (index + 1 === 3) temp.classList.add("march");
+        if (index + 1 === 5) temp.classList.add("may");
+        if (index + 1 === 6) temp.classList.add("june");
+        if (index + 1 === 7) temp.classList.add("july");
+        if (index + 1 === 8) temp.classList.add("august");
+        if (index + 1 === 9) temp.classList.add("september");
         temp.innerText = averageTemps[index] + "°F";
         const radiusTemp = 98;
         temp.style.left = (centerX + radiusTemp * Math.cos(radian)) + "px";
@@ -560,9 +560,9 @@
 
       function createMarker(data, type) {
         const currentYear = new Date().getFullYear();
-        const totalDays = new Date(currentYear, data.month + 1, 0).getDate();
+        const totalDays = new Date(currentYear, data.month, 0).getDate(); // data.month is 1-12, adjust to 0-11 internally
         const fraction = (data.day - 1) / totalDays;
-        const angle = (data.month + fraction + 1) * 30;
+        const angle = (data.month - 1 + fraction + 1) * 30; // Subtract 1 to get 0-11 for angle calc
         const radian = (angle - 90) * Math.PI / 180;
         const radius = 160;
         const markerCenterX = centerX + radius * Math.cos(radian);
@@ -588,16 +588,16 @@
       function createDptMarker(data) { return createMarker(data, "dpt"); }
 
       const holidays = [
-        { name: "New Year's Day", month: 0, day: 1 },
-        { name: "Martin Luther King Jr. Day", month: 0, day: 15 },
-        { name: "Presidents' Day", month: 1, day: 20 },
-        { name: "Memorial Day", month: 4, day: 31 },
-        { name: "Independence Day", month: 6, day: 4 },
-        { name: "Labor Day", month: 8, day: 7 },
-        { name: "Columbus Day", month: 9, day: 12 },
-        { name: "Veterans Day", month: 10, day: 11 },
-        { name: "Thanksgiving", month: 10, day: 25 },
-        { name: "Christmas Day", month: 11, day: 25 }
+        { name: "New Year's Day", month: 1, day: 1 },
+        { name: "Martin Luther King Jr. Day", month: 1, day: 15 },
+        { name: "Presidents' Day", month: 2, day: 20 },
+        { name: "Memorial Day", month: 5, day: 31 },
+        { name: "Independence Day", month: 7, day: 4 },
+        { name: "Labor Day", month: 9, day: 7 },
+        { name: "Columbus Day", month: 10, day: 12 },
+        { name: "Veterans Day", month: 11, day: 11 },
+        { name: "Thanksgiving", month: 11, day: 25 },
+        { name: "Christmas Day", month: 12, day: 25 }
       ];
       holidays.forEach(holiday => createMarker(holiday, "holiday"));
 
@@ -623,7 +623,7 @@
               const [, year, month, day] = match.map(Number);
               return {
                 name: name,
-                month: month,
+                month: month + 1, // Convert 0-11 to 1-12
                 day: day,
                 year: year
               };
@@ -645,15 +645,15 @@
       });
 
       const dptEvents = [
-        { name: "Spring Break", month: 2, day: 1 },
-        { name: "End Spring Break", month: 2, day: 7 },
-        { name: "Management Interview Due", month: 2, day: 28 },
-        { name: "Final Clinical", month: 4, day: 5 },
-        { name: "End Final Clinical", month: 6, day: 4 },
-        { name: "Boards Exam", month: 6, day: 29 },
-        { name: "Hike", month: 7, day: 4 },
-        { name: "Get a Job!", month: 7, day: 11 },
-        { name: "Commencement", month: 3, day: 26 }
+        { name: "Spring Break", month: 3, day: 1 },
+        { name: "End Spring Break", month: 3, day: 7 },
+        { name: "Management Interview Due", month: 3, day: 28 },
+        { name: "Final Clinical", month: 5, day: 5 },
+        { name: "End Final Clinical", month: 7, day: 4 },
+        { name: "Boards Exam", month: 7, day: 29 },
+        { name: "Hike", month: 8, day: 4 },
+        { name: "Get a Job!", month: 8, day: 11 },
+        { name: "Commencement", month: 4, day: 26 }
       ];
       dptEvents.forEach(event => createDptMarker(event));
 
@@ -719,9 +719,9 @@
           alert("Please enter the date in MM-DD format.");
           return;
         }
-        let month = parseInt(parts[0], 10) - 1;
+        let month = parseInt(parts[0], 10); // Already 1-12
         let day = parseInt(parts[1], 10);
-        if (isNaN(month) || isNaN(day) || month < 0 || month > 11 || day < 1 || day > 31) {
+        if (isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) {
           alert("Invalid date format.");
           return;
         }
@@ -840,9 +840,9 @@
           let ageText = '';
           if (birthYear) {
             const currentYear = today.getFullYear();
-            const month = Number(activeMarker.dataset.month);
+            const month = Number(activeMarker.dataset.month); // 1-12
             const day = Number(activeMarker.dataset.day);
-            const birthdayThisYear = new Date(currentYear, month, day);
+            const birthdayThisYear = new Date(currentYear, month - 1, day); // Adjust to 0-11
             const age = currentYear - birthYear + (today < birthdayThisYear ? 0 : 1);
             ageText = ` <span style="color: gray">(turning ${age})</span>`;
           }
@@ -871,13 +871,13 @@
 
       function updateHands() {
         const now = new Date();
-        const monthIndex = now.getMonth();
-        const totalDays = new Date(now.getFullYear(), monthIndex + 1, 0).getDate();
+        const monthIndex = now.getMonth() + 1; // Convert 0-11 to 1-12
+        const totalDays = new Date(now.getFullYear(), monthIndex, 0).getDate();
         const secondsInDay = 86400;
         const secondsPassedToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
         const fractionToday = secondsPassedToday / secondsInDay;
         const fractionMonth = (now.getDate() - 1 + fractionToday) / totalDays;
-        const monthAngle = (monthIndex + fractionMonth + 1) * 30;
+        const monthAngle = (monthIndex - 1 + fractionMonth + 1) * 30; // Adjust to 0-11 for angle
         document.getElementById("hand").style.transform = "rotate(" + monthAngle + "deg)";
         const hours = now.getHours() + now.getMinutes() / 60;
         const hourAngle = (hours % 12) * 30;
