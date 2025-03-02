@@ -598,7 +598,6 @@
       ];
       holidays.forEach(holiday => createMarker(holiday, "holiday"));
 
-      // Google Sheets Integration with MM-DD-YYYY Format
       async function fetchBirthdays() {
         try {
           const spreadsheetId = '1s2Dsf7QsAZkm49HAwrl8bhnNP5Z0t4Uwjqy2hSly108';
@@ -611,16 +610,18 @@
             .trim();
           const json = JSON.parse(cleanedText);
           const rows = json.table.rows;
-          return rows.map(row => {
+          const birthdays = rows.map(row => {
             const name = row.c[0].v + "'s Birthday"; // Column A: Name
             const dateStr = row.c[1].v;              // Column B: Birthday (MM-DD-YYYY)
-            const [month, day, year] = dateStr.split('-').map(Number);
+            const [month, day] = dateStr.split('-').map(Number);
             return {
               name: name,
               month: month - 1, // Convert to 0-11 for JavaScript months
-              day: day,         // Day as-is (1-31)
+              day: day          // Day as-is (1-31)
             };
           });
+          console.log('Fetched birthdays:', birthdays); // Debug log to verify data
+          return birthdays;
         } catch (error) {
           console.error('Error fetching birthdays from Google Sheets:', error);
           return []; // Fallback to empty array if fetch fails
