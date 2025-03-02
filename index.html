@@ -254,7 +254,7 @@
       color: rgb(13, 126, 255); 
       text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
     }
-    #toggleCustomEvents:checked + .checkbox-custom::after { 
+    #toggleCustomEvents input:checked + .checkbox-custom::after { 
       color: rgb(4, 255, 0); 
       text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
     }
@@ -663,14 +663,14 @@
 
       function createMarker(data, type) {
         if (!typePriority.includes(type)) {
-          typePriority.push(type); // Dynamically add new type
+          typePriority.push(type);
         }
         const currentYear = new Date().getFullYear();
         const totalDays = new Date(currentYear, data.month, 0).getDate();
         const fraction = (data.day - 1) / totalDays;
         const angle = (data.month - 1 + fraction + 1) * 30;
         const radian = (angle - 90) * Math.PI / 180;
-        const baseRadius = 160; // Start at Slot #1
+        const baseRadius = 160;
         const markerCenterX = centerX + baseRadius * Math.cos(radian);
         const markerCenterY = centerY + baseRadius * Math.sin(radian);
         const container = document.createElement("div");
@@ -682,8 +682,8 @@
         container.dataset.month = data.month;
         container.dataset.day = data.day;
         container.dataset.year = data.year || "";
-        container.dataset.order = Date.now(); // For same-name sorting
-        container.style.display = "none"; // Initially hidden, shown by toggle
+        container.dataset.order = Date.now();
+        container.style.display = "none";
         const dot = document.createElement("div");
         dot.className = `${type}-dot`;
         container.appendChild(dot);
@@ -751,7 +751,7 @@
 
       fetchBirthdays().then(birthdays => {
         const birthdayMarkers = birthdays.map(b => createMarker(b, "birthday"));
-        updateDotPositions(); // Slide after initial creation
+        updateDotPositions();
       });
 
       const dptEvents = [
@@ -832,7 +832,6 @@
         });
       }
 
-      // Toggle event listeners
       document.getElementById("toggleMajorHolidays").addEventListener("change", function() {
         visibilityMap["major-holiday"] = this.checked;
         const markers = clock.querySelectorAll(".major-holiday-marker");
@@ -865,7 +864,7 @@
             setTimeout(() => {
               marker.classList.remove("ripple-out");
               marker.style.display = "none";
-            }, 300<|control675|>);
+            }, 300);
           }
         });
         updateDotPositions();
@@ -1008,7 +1007,7 @@
 
       updateHands();
       setInterval(updateHands, 1000);
-      setTimeout(updateDotPositions, 0); // Initial slide after all markers are created
+      setTimeout(updateDotPositions, 0);
     });
   </script>
 </body>
