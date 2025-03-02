@@ -147,7 +147,7 @@
       z-index: 5;
       cursor: pointer;
       display: none;
-      transition: top 0.3s ease, left 0.3s ease;
+      transition: left 0.3s ease, top 0.3s ease;
     }
     .major-holiday-dot,
     .minor-holiday-dot,
@@ -238,30 +238,15 @@
       font-size: 12px;
       font-weight: bold;
     }
-    #toggleMajorHolidays:checked + .checkbox-custom::after { 
-      color: rgb(255, 165, 0); 
-      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
-    }
-    #toggleMinorHolidays:checked + .checkbox-custom::after { 
-      color: rgb(255, 0, 0); 
-      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
-    }
-    #toggleBirthdays:checked + .checkbox-custom::after { 
-      color: rgb(255, 8, 201); 
-      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
-    }
-    #toggleDptEvents:checked + .checkbox-custom::after { 
-      color: rgb(13, 126, 255); 
-      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
-    }
-    #toggleCustomEvents input:checked + .checkbox-custom::after { 
-      color: rgb(4, 255, 0); 
-      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
-    }
+    #toggleMajorHolidays:checked + .checkbox-custom::after { color: rgb(255, 165, 0); }
+    #toggleMinorHolidays:checked + .checkbox-custom::after { color: rgb(255, 0, 0); }
+    #toggleBirthdays:checked + .checkbox-custom::after { color: rgb(255, 8, 201); }
+    #toggleDptEvents:checked + .checkbox-custom::after { color: rgb(13, 126, 255); }
+    #toggleCustomEvents:checked + .checkbox-custom::after { color: rgb(4, 255, 0); }
     #toggleSeasons:checked + .checkbox-custom::after,
     #toggleTemperatures:checked + .checkbox-custom::after,
     #toggleClockHands:checked + .checkbox-custom::after { color: white; }
-    #toggleCustomEvents {
+    #toggleCustomEventsLabel {
       display: none;
     }
     .custom-event-button {
@@ -288,12 +273,11 @@
     }
     @keyframes rippleOut {
       0% { transform: scale(1); opacity: 1; }
-      5% { transform: scale(1.6); opacity: 1; }
       60% { transform: scale(0.2); opacity: 0.8; }
       100% { transform: scale(0); opacity: 0; }
     }
     .ripple-in { animation: rippleIn 0.3s forwards; }
-    .ripple-out { animation: rippleOut 0.6s forwards; }
+    .ripple-out { animation: rippleOut 0.3s forwards; }
     .temperature {
       font-size: 0.8em;
       color: white;
@@ -362,9 +346,9 @@
       <input type="checkbox" id="toggleDptEvents">
       <span class="checkbox-custom"></span>
     </label>
-    <label class="checkbox-label" id="toggleCustomEvents">
+    <label class="checkbox-label" id="toggleCustomEventsLabel">
       Custom Events
-      <input type="checkbox">
+      <input type="checkbox" id="toggleCustomEvents">
       <span class="checkbox-custom"></span>
     </label>
   </div>
@@ -380,14 +364,7 @@
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const averageTemps = [30, 35, 45, 55, 65, 75, 80, 78, 70, 60, 50, 35];
       const temperatureElements = [];
-      const typePriority = ["major-holiday", "minor-holiday", "birthday", "dpt", "custom"];
-      const visibilityMap = {
-        "major-holiday": false,
-        "minor-holiday": false,
-        "birthday": false,
-        "dpt": false,
-        "custom": false
-      };
+      let customEventsAdded = false;
 
       function getDaySuffix(day) {
         if (day >= 11 && day <= 13) return "th";
@@ -548,15 +525,13 @@
         if (marker.labelElement) { marker.labelElement.remove(); marker.labelElement = null; }
         if (marker.connectorElement) { marker.connectorElement.remove(); marker.connectorElement = null; }
         marker.dataset.labelVisible = "false";
-        const type = marker.className.split('-')[0];
-        if (!visibilityMap[type]) {
-          marker.classList.add("ripple-out");
-          setTimeout(() => {
-            marker.classList.remove("ripple-out");
-            marker.style.display = "none";
-          }, 300);
+        if ((marker.classList.contains("major-holiday-marker") && !majorHolidaysVisible) ||
+            (marker.classList.contains("minor-holiday-marker") && !minorHolidaysVisible) ||
+            (marker.classList.contains("birthday-marker") && !birthdaysVisible) ||
+            (marker.classList.contains("custom-marker") && !customEventsVisible) ||
+            (marker.classList.contains("dpt-marker") && !dptEventsVisible)) {
+          marker.style.display = "none";
         }
-        updateDotPositions();
       }
 
       function toggleMarkerLabel(marker) {
@@ -639,7 +614,6 @@
             hideLabel(marker);
           });
         }
-        updateDotPositions();
       }
 
       function getClosestMarker(x, y) {
@@ -662,9 +636,6 @@
       }
 
       function createMarker(data, type) {
-        if (!typePriority.includes(type)) {
-          typePriority.push(type);
-        }
         const currentYear = new Date().getFullYear();
         const totalDays = new Date(currentYear, data.month, 0).getDate();
         const fraction = (data.day - 1) / totalDays;
@@ -682,7 +653,8 @@
         container.dataset.month = data.month;
         container.dataset.day = data.day;
         container.dataset.year = data.year || "";
-        container.dataset.order = Date.now();
+        container.dataset.baseLeft = (markerCenterX - 10) + "px";
+        container.dataset.baseTop = (markerCenterY - 10) + "px";
         container.style.display = "none";
         const dot = document.createElement("div");
         dot.className = `${type}-dot`;
@@ -703,7 +675,7 @@
         { name: "Father's Day", calc: (year) => ({ month: 6, day: nthWeekdayOfMonth(year, 6, 0, 3) }) },
         { name: "Halloween", month: 10, day: 31 }
       ].map(h => getNextHolidayDate(h.name, new Date().getFullYear(), h.month, h.day, h.calc));
-      const majorHolidayMarkers = majorHolidays.map(h => createMarker(h, "major-holiday"));
+      majorHolidays.forEach(h => createMarker(h, "major-holiday"));
 
       const minorHolidays = [
         { name: "Memorial Day", calc: (year) => ({ month: 5, day: lastWeekdayOfMonth(year, 5, 1) }) },
@@ -723,7 +695,7 @@
         }},
         { name: "Earth Day", month: 4, day: 22 }
       ].map(h => getNextHolidayDate(h.name, new Date().getFullYear(), h.month, h.day, h.calc));
-      const minorHolidayMarkers = minorHolidays.map(h => createMarker(h, "minor-holiday"));
+      minorHolidays.forEach(h => createMarker(h, "minor-holiday"));
 
       async function fetchBirthdays() {
         try {
@@ -750,8 +722,7 @@
       }
 
       fetchBirthdays().then(birthdays => {
-        const birthdayMarkers = birthdays.map(b => createMarker(b, "birthday"));
-        updateDotPositions();
+        birthdays.forEach(b => createMarker(b, "birthday"));
       });
 
       const dptEvents = [
@@ -765,7 +736,142 @@
         { name: "Get a Job!", month: 8, day: 11 },
         { name: "Commencement", month: 4, day: 26 }
       ];
-      const dptMarkers = dptEvents.map(e => createMarker(e, "dpt"));
+      dptEvents.forEach(event => createMarker(event, "dpt"));
+
+      function updateDotPositions(className) {
+        const markers = clock.querySelectorAll(`.${className}-marker`);
+        const dateToMarkers = {};
+        markers.forEach(marker => {
+          if (marker.style.display !== "none" || marker.dataset.labelVisible === "true") {
+            const dateKey = `${marker.dataset.month}-${marker.dataset.day}`;
+            if (!dateToMarkers[dateKey]) dateToMarkers[dateKey] = [];
+            dateToMarkers[dateKey].push(marker);
+          }
+        });
+
+        Object.values(dateToMarkers).forEach(group => {
+          group.forEach((marker, index) => {
+            const angle = (marker.dataset.month - 1 + (marker.dataset.day - 1) / new Date(new Date().getFullYear(), marker.dataset.month, 0).getDate() + 1) * 30;
+            const radian = (angle - 90) * Math.PI / 180;
+            const radius = 160 + index * 4;
+            const markerCenterX = centerX + radius * Math.cos(radian);
+            const markerCenterY = centerY + radius * Math.sin(radian);
+            marker.style.left = (markerCenterX - 10) + "px";
+            marker.style.top = (markerCenterY - 10) + "px";
+            if (marker.labelElement) updateConnector(marker);
+          });
+        });
+      }
+
+      let majorHolidaysVisible = false;
+      document.getElementById("toggleMajorHolidays").addEventListener("change", function() {
+        majorHolidaysVisible = this.checked;
+        const markers = clock.querySelectorAll(".major-holiday-marker");
+        markers.forEach(marker => {
+          if (this.checked && marker.dataset.labelVisible !== "true") {
+            marker.style.left = marker.dataset.baseLeft;
+            marker.style.top = marker.dataset.baseTop;
+            marker.style.display = "block";
+            marker.classList.add("ripple-in");
+            setTimeout(() => marker.classList.remove("ripple-in"), 300);
+          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
+            marker.classList.add("ripple-out");
+            setTimeout(() => {
+              marker.classList.remove("ripple-out");
+              marker.style.display = "none";
+            }, 300);
+          }
+        });
+        if (this.checked) updateDotPositions("major-holiday");
+      });
+
+      let minorHolidaysVisible = false;
+      document.getElementById("toggleMinorHolidays").addEventListener("change", function() {
+        minorHolidaysVisible = this.checked;
+        const markers = clock.querySelectorAll(".minor-holiday-marker");
+        markers.forEach(marker => {
+          if (this.checked && marker.dataset.labelVisible !== "true") {
+            marker.style.left = marker.dataset.baseLeft;
+            marker.style.top = marker.dataset.baseTop;
+            marker.style.display = "block";
+            marker.classList.add("ripple-in");
+            setTimeout(() => marker.classList.remove("ripple-in"), 300);
+          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
+            marker.classList.add("ripple-out");
+            setTimeout(() => {
+              marker.classList.remove("ripple-out");
+              marker.style.display = "none";
+            }, 300);
+          }
+        });
+        if (this.checked) updateDotPositions("minor-holiday");
+      });
+
+      let birthdaysVisible = false;
+      document.getElementById("toggleBirthdays").addEventListener("change", function() {
+        birthdaysVisible = this.checked;
+        const markers = clock.querySelectorAll(".birthday-marker");
+        markers.forEach(marker => {
+          if (this.checked && marker.dataset.labelVisible !== "true") {
+            marker.style.left = marker.dataset.baseLeft;
+            marker.style.top = marker.dataset.baseTop;
+            marker.style.display = "block";
+            marker.classList.add("ripple-in");
+            setTimeout(() => marker.classList.remove("ripple-in"), 300);
+          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
+            marker.classList.add("ripple-out");
+            setTimeout(() => {
+              marker.classList.remove("ripple-out");
+              marker.style.display = "none";
+            }, 300);
+          }
+        });
+        if (this.checked) updateDotPositions("birthday");
+      });
+
+      let dptEventsVisible = false;
+      document.getElementById("toggleDptEvents").addEventListener("change", function() {
+        dptEventsVisible = this.checked;
+        const markers = clock.querySelectorAll(".dpt-marker");
+        markers.forEach(marker => {
+          if (this.checked && marker.dataset.labelVisible !== "true") {
+            marker.style.left = marker.dataset.baseLeft;
+            marker.style.top = marker.dataset.baseTop;
+            marker.style.display = "block";
+            marker.classList.add("ripple-in");
+            setTimeout(() => marker.classList.remove("ripple-in"), 300);
+          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
+            marker.classList.add("ripple-out");
+            setTimeout(() => {
+              marker.classList.remove("ripple-out");
+              marker.style.display = "none";
+            }, 300);
+          }
+        });
+        if (this.checked) updateDotPositions("dpt");
+      });
+
+      let customEventsVisible = false;
+      document.getElementById("toggleCustomEvents").addEventListener("change", function() {
+        customEventsVisible = this.checked;
+        const markers = clock.querySelectorAll(".custom-marker");
+        markers.forEach(marker => {
+          if (this.checked && marker.dataset.labelVisible !== "true") {
+            marker.style.left = marker.dataset.baseLeft;
+            marker.style.top = marker.dataset.baseTop;
+            marker.style.display = "block";
+            marker.classList.add("ripple-in");
+            setTimeout(() => marker.classList.remove("ripple-in"), 300);
+          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
+            marker.classList.add("ripple-out");
+            setTimeout(() => {
+              marker.classList.remove("ripple-out");
+              marker.style.display = "none";
+            }, 300);
+          }
+        });
+        if (this.checked) updateDotPositions("custom");
+      });
 
       document.getElementById("addCustomEvent").addEventListener("click", () => {
         const name = prompt("Enter event name:");
@@ -774,161 +880,24 @@
           const [month, day] = date.split("-").map(Number);
           if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
             const marker = createMarker({ name, month, day }, "custom");
-            if (visibilityMap["custom"]) {
+            if (!customEventsAdded) {
+              document.getElementById("toggleCustomEventsLabel").style.display = "block";
+              customEventsAdded = true;
+            }
+            if (customEventsVisible) {
               marker.style.display = "block";
               marker.classList.add("ripple-in");
               setTimeout(() => marker.classList.remove("ripple-in"), 300);
+              updateDotPositions("custom");
             }
-            updateDotPositions();
           } else {
             alert("Invalid date format!");
           }
         }
       });
 
-      function updateDotPositions() {
-        const dateToVisibleDots = {};
-        const markers = clock.querySelectorAll(".marker");
-
-        markers.forEach(marker => {
-          const type = marker.className.split('-')[0];
-          const isVisible = visibilityMap[type] || marker.dataset.labelVisible === "true";
-          if (isVisible) {
-            marker.style.display = "block";
-            const dateKey = `${marker.dataset.month}-${marker.dataset.day}`;
-            if (!dateToVisibleDots[dateKey]) dateToVisibleDots[dateKey] = [];
-            dateToVisibleDots[dateKey].push(marker);
-          } else {
-            marker.style.display = "none";
-          }
-        });
-
-        Object.keys(dateToVisibleDots).forEach(dateKey => {
-          const dots = dateToVisibleDots[dateKey];
-          dots.sort((a, b) => {
-            const typeA = a.className.split('-')[0];
-            const typeB = b.className.split('-')[0];
-            const priorityA = typePriority.indexOf(typeA);
-            const priorityB = typePriority.indexOf(typeB);
-            if (priorityA !== priorityB) return priorityA - priorityB;
-            const nameA = a.dataset.name;
-            const nameB = b.dataset.name;
-            if (nameA !== nameB) return nameA.localeCompare(nameB);
-            return Number(a.dataset.order) - Number(b.dataset.order);
-          });
-
-          dots.forEach((dot, index) => {
-            const slot = index;
-            const offset = slot * 4;
-            const angle = (dot.dataset.month - 1 + (dot.dataset.day - 1) / new Date(new Date().getFullYear(), dot.dataset.month, 0).getDate() + 1) * 30;
-            const radian = (angle - 90) * Math.PI / 180;
-            const radius = 160 + offset;
-            const markerCenterX = centerX + radius * Math.cos(radian);
-            const markerCenterY = centerY + radius * Math.sin(radian);
-            dot.style.left = (markerCenterX - 10) + "px";
-            dot.style.top = (markerCenterY - 10) + "px";
-            if (dot.labelElement) updateConnector(dot);
-          });
-        });
-      }
-
-      document.getElementById("toggleMajorHolidays").addEventListener("change", function() {
-        visibilityMap["major-holiday"] = this.checked;
-        const markers = clock.querySelectorAll(".major-holiday-marker");
-        markers.forEach(marker => {
-          if (this.checked && marker.dataset.labelVisible !== "true") {
-            marker.style.display = "block";
-            marker.classList.add("ripple-in");
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
-            marker.classList.add("ripple-out");
-            setTimeout(() => {
-              marker.classList.remove("ripple-out");
-              marker.style.display = "none";
-            }, 300);
-          }
-        });
-        updateDotPositions();
-      });
-
-      document.getElementById("toggleMinorHolidays").addEventListener("change", function() {
-        visibilityMap["minor-holiday"] = this.checked;
-        const markers = clock.querySelectorAll(".minor-holiday-marker");
-        markers.forEach(marker => {
-          if (this.checked && marker.dataset.labelVisible !== "true") {
-            marker.style.display = "block";
-            marker.classList.add("ripple-in");
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
-            marker.classList.add("ripple-out");
-            setTimeout(() => {
-              marker.classList.remove("ripple-out");
-              marker.style.display = "none";
-            }, 300);
-          }
-        });
-        updateDotPositions();
-      });
-
-      document.getElementById("toggleBirthdays").addEventListener("change", function() {
-        visibilityMap["birthday"] = this.checked;
-        const markers = clock.querySelectorAll(".birthday-marker");
-        markers.forEach(marker => {
-          if (this.checked && marker.dataset.labelVisible !== "true") {
-            marker.style.display = "block";
-            marker.classList.add("ripple-in");
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
-            marker.classList.add("ripple-out");
-            setTimeout(() => {
-              marker.classList.remove("ripple-out");
-              marker.style.display = "none";
-            }, 300);
-          }
-        });
-        updateDotPositions();
-      });
-
-      document.getElementById("toggleDptEvents").addEventListener("change", function() {
-        visibilityMap["dpt"] = this.checked;
-        const markers = clock.querySelectorAll(".dpt-marker");
-        markers.forEach(marker => {
-          if (this.checked && marker.dataset.labelVisible !== "true") {
-            marker.style.display = "block";
-            marker.classList.add("ripple-in");
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
-            marker.classList.add("ripple-out");
-            setTimeout(() => {
-              marker.classList.remove("ripple-out");
-              marker.style.display = "none";
-            }, 300);
-          }
-        });
-        updateDotPositions();
-      });
-
-      document.querySelector("#toggleCustomEvents input").addEventListener("change", function() {
-        visibilityMap["custom"] = this.checked;
-        const markers = clock.querySelectorAll(".custom-marker");
-        markers.forEach(marker => {
-          if (this.checked && marker.dataset.labelVisible !== "true") {
-            marker.style.display = "block";
-            marker.classList.add("ripple-in");
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
-            marker.classList.add("ripple-out");
-            setTimeout(() => {
-              marker.classList.remove("ripple-out");
-              marker.style.display = "none";
-            }, 300);
-          }
-        });
-        updateDotPositions();
-      });
-
       document.getElementById("toggleSeasons").addEventListener("change", function() {
-        seasonOverlay.style.opacity = this.checked ? 1 : 0;
+        seasonOverlay.style.opacity = this.checked ? 0.8 : 0;
       });
 
       document.getElementById("toggleTemperatures").addEventListener("change", function() {
@@ -1007,7 +976,6 @@
 
       updateHands();
       setInterval(updateHands, 1000);
-      setTimeout(updateDotPositions, 0);
     });
   </script>
 </body>
