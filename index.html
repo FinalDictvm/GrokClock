@@ -164,7 +164,7 @@
     }
     .major-holiday-dot { background: rgb(255, 165, 0); } /* Orange */
     .minor-holiday-dot { background: rgb(255, 0, 0); }   /* Red */
-    .birthday-dot { background: rgb(255, 8, 201); }      /* Violet */
+    .birthday-dot { background: rgb(255, 8, 201); border: 1px solid white; } /* Violet with white border */
     .custom-dot { background: rgb(4, 255, 0); }          /* Green */
     .dpt-dot { background: rgb(13, 126, 255); }          /* Blue-ish */
     .active .major-holiday-dot,
@@ -235,14 +235,31 @@
       font-size: 12px;
       font-weight: bold;
     }
-    #toggleMajorHolidays:checked + .checkbox-custom::after { color: rgb(255, 165, 0); } /* Orange */
-    #toggleMinorHolidays:checked + .checkbox-custom::after { color: rgb(255, 0, 0); }   /* Red */
-    #toggleBirthdays:checked + .checkbox-custom::after { color: rgb(255, 8, 201); }     /* Violet */
-    #toggleDptEvents:checked + .checkbox-custom::after { color: rgb(13, 126, 255); }    /* Blue-ish */
-    #toggleCustomEvent input:checked + .checkbox-custom::after { color: rgb(4, 255, 0); } /* Green */
+    #toggleMajorHolidays:checked + .checkbox-custom::after { 
+      color: rgb(255, 165, 0); /* Orange */
+      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white; /* White outline */
+    }
+    #toggleMinorHolidays:checked + .checkbox-custom::after { 
+      color: rgb(255, 0, 0); /* Red */
+      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white; /* White outline */
+    }
+    #toggleBirthdays:checked + .checkbox-custom::after { 
+      color: rgb(255, 8, 201); /* Violet */
+      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white; /* White outline */
+    }
+    #toggleDptEvents:checked + .checkbox-custom::after { 
+      color: rgb(13, 126, 255); /* Blue-ish */
+      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white; /* White outline */
+    }
+    #toggleCustomEvent input:checked + .checkbox-custom::after { 
+      color: rgb(4, 255, 0); /* Green */
+      text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white; /* White outline */
+    }
     #toggleSeasons:checked + .checkbox-custom::after,
     #toggleTemperatures:checked + .checkbox-custom::after,
-    #toggleClockHands:checked + .checkbox-custom::after { color: white; } /* White for non-colored */
+    #toggleClockHands:checked + .checkbox-custom::after { 
+      color: white; /* No outline for these */
+    }
     #toggleCustomEvent {
       display: none;
     }
@@ -840,36 +857,7 @@
 
       let customEventsVisible = false;
       const toggleCustomEvent = document.getElementById("toggleCustomEvent").querySelector("input");
-      document.getElementById("addCustomEvent").addEventListener("click", function() {
-        let eventName = prompt("Enter custom event name:");
-        if (!eventName) return;
-        let eventDate = prompt("Enter event date (MM-DD):");
-        if (!eventDate) return;
-        let parts = eventDate.split("-");
-        if (parts.length !== 2) {
-          alert("Please enter the date in MM-DD format.");
-          return;
-        }
-        let month = parseInt(parts[0], 10);
-        let day = parseInt(parts[1], 10);
-        if (isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) {
-          alert("Invalid date format.");
-          return;
-        }
-        createCustomMarker({ name: eventName, month: month, day: day });
-        document.getElementById("toggleCustomEvent").style.display = "flex";
-        customEventsVisible = true;
-        toggleCustomEvent.checked = true;
-        const markers = document.querySelectorAll(".custom-marker");
-        markers.forEach(marker => {
-          marker.style.display = "block";
-          marker.offsetWidth;
-          marker.classList.add("ripple-in");
-          setTimeout(() => marker.classList.remove("ripple-in"), 300);
-        });
-      });
-
-      toggleCustomEvent.addEventListener("change", function() {
+      document.getElementById("addCustomEvent").addEventListener("change", function() {
         const markers = document.querySelectorAll(".custom-marker");
         customEventsVisible = this.checked;
         if (customEventsVisible) {
