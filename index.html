@@ -164,8 +164,8 @@
       border: 1px solid white;
       transition: transform 0.2s ease;
     }
-    .major-holiday-dot { background: rgb(255, 165, 0); }
-    .minor-holiday-dot { background: rgb(255, 0, 0); }
+    .major-holiday-dot { background: rgb(255, 0, 0); } /* Switched back to red */
+    .minor-holiday-dot { background: rgb(255, 165, 0); } /* Switched back to orange */
     .birthday-dot { background: rgb(255, 8, 201); }
     .custom-dot { background: rgb(4, 255, 0); }
     .dpt-dot { background: rgb(13, 126, 255); }
@@ -237,8 +237,8 @@
       font-size: 12px;
       font-weight: bold;
     }
-    #toggleMajorHolidays:checked + .checkbox-custom::after { color: rgb(255, 165, 0); }
-    #toggleMinorHolidays:checked + .checkbox-custom::after { color: rgb(255, 0, 0); }
+    #toggleMajorHolidays:checked + .checkbox-custom::after { color: rgb(255, 0, 0); } /* Matches dot color */
+    #toggleMinorHolidays:checked + .checkbox-custom::after { color: rgb(255, 165, 0); } /* Matches dot color */
     #toggleBirthdays:checked + .checkbox-custom::after { color: rgb(255, 8, 201); }
     #toggleDptEvents:checked + .checkbox-custom::after { color: rgb(13, 126, 255); }
     #toggleCustomEvents:checked + .checkbox-custom::after { color: rgb(4, 255, 0); }
@@ -564,8 +564,7 @@
           label.className = "event-label";
           label.textContent = marker.dataset.name;
           label.style.color = "white";
-          clock.appendChild(label);
-          const labelRect = label.getBoundingClientRect();
+          const labelRect = label.getBoundingClientRect(); // Get size before appending
           const margin = 15;
           const dx = dotX - centerX;
           const dy = dotY - centerY;
@@ -593,12 +592,22 @@
           connector.className = "connector";
           const dotColor = dotStyle.backgroundColor;
           connector.style.backgroundColor = dotColor;
-          connector.dataset.prevAngle = "0";
+          // Set initial connector properties before appending
+          connector.style.left = dotX + "px";
+          connector.style.top = dotY + "px";
+          const initialDx = labelX - dotX;
+          const initialDy = labelY - dotY;
+          const initialDistance = Math.sqrt(initialDx * initialDx + initialDy * initialDy);
+          const initialAngleDeg = Math.atan2(initialDy, initialDx) * 180 / Math.PI;
+          connector.style.width = initialDistance + "px";
+          connector.style.transform = `rotate(${initialAngleDeg}deg)`;
+          connector.dataset.prevAngle = initialAngleDeg;
+          clock.appendChild(label);
           clock.appendChild(connector);
           marker.labelElement = label;
           marker.connectorElement = connector;
           marker.dataset.labelVisible = "true";
-          setTimeout(() => updateConnector(marker), 0); // Delay to ensure DOM render
+          requestAnimationFrame(() => updateConnector(marker)); // Ensure stable render
           let isDragging = false;
           let offsetX, offsetY;
           label.addEventListener("mousedown", function(e) {
@@ -607,7 +616,7 @@
             const clockRect = clock.getBoundingClientRect();
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
-            connector.style.transition = "none"; // No transition during drag
+            connector.style.transition = "none";
             e.preventDefault();
           });
           document.addEventListener("mousemove", function(e) {
@@ -621,7 +630,7 @@
           });
           document.addEventListener("mouseup", function() {
             isDragging = false;
-            connector.style.transition = ""; // Restore for sliding
+            connector.style.transition = "";
           });
           label.addEventListener("dblclick", function(e) {
             e.stopPropagation();
@@ -686,7 +695,6 @@
       function updateAllDotPositions() {
         const dateToVisibleDots = {};
         const markers = clock.querySelectorAll(".marker");
-        const slidingDots = [];
         markers.forEach(marker => {
           const type = marker.dataset.type;
           const isVisible = visibilityMap[type] || marker.dataset.labelVisible === "true";
@@ -695,7 +703,6 @@
             const dateKey = `${marker.dataset.month}-${marker.dataset.day}`;
             if (!dateToVisibleDots[dateKey]) dateToVisibleDots[dateKey] = [];
             dateToVisibleDots[dateKey].push(marker);
-            if (marker.dataset.labelVisible === "true") slidingDots.push(marker);
           } else {
             marker.style.display = "none";
           }
@@ -723,32 +730,15 @@
             const markerCenterY = centerY + radius * Math.sin(radian);
             dot.style.left = (markerCenterX - 10) + "px";
             dot.style.top = (markerCenterY - 10) + "px";
+            if (dot.labelElement) {
+              dot.connectorElement.style.transition = "left 0.3s ease, top 0.3s ease, width 0.3s ease, transform 0.3s ease";
+              updateConnector(dot);
+              setTimeout(() => {
+                dot.connectorElement.style.transition = "";
+              }, 300);
+            }
           });
         });
-
-        // Sync connector updates during slide
-        if (slidingDots.length > 0) {
-          const startTime = performance.now();
-          const duration = 300; // Match dot transition duration
-          function animateConnectors(timestamp) {
-            const elapsed = timestamp - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            slidingDots.forEach(dot => {
-              if (dot.labelElement) updateConnector(dot);
-            });
-            if (progress < 1) {
-              requestAnimationFrame(animateConnectors);
-            } else {
-              slidingDots.forEach(dot => {
-                if (dot.connectorElement) dot.connectorElement.style.transition = "";
-              });
-            }
-          }
-          slidingDots.forEach(dot => {
-            if (dot.connectorElement) dot.connectorElement.style.transition = "top 0.3s ease, left 0.3s ease, width 0.3s ease, transform 0.3s ease";
-          });
-          requestAnimationFrame(animateConnectors);
-        }
       }
 
       const majorHolidays = [
