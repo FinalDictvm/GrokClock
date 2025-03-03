@@ -106,14 +106,10 @@
     }
     .pointer {
       width: 2px;
-      height: 12px; /* Spans from 150px to 162px radius for visibility */
+      height: 12px; /* Spans from 150px to 162px radius */
       background: white;
       position: absolute;
-      left: calc(50% - 1px);
-      bottom: 138px; /* Starts at 150px radius (center - height) */
-      transform-origin: bottom center;
-      transform: rotate(0deg);
-      transition: transform 0.5s linear;
+      transform-origin: center bottom;
       z-index: 2;
       display: none; /* Controlled by toggle */
     }
@@ -1222,13 +1218,22 @@
         const fractionToday = secondsPassedToday / secondsInDay;
         const fractionMonth = (now.getDate() - 1 + fractionToday) / totalDays;
         const monthAngle = (monthIndex - 1 + fractionMonth + 1) * 30;
+        const monthRadian = (monthAngle - 90) * Math.PI / 180;
+
         document.getElementById("hand").style.transform = "rotate(" + monthAngle + "deg)";
+
         if (visibilityMap["pointer"]) {
+          const pointerBaseRadius = 150; // Start at outer border
+          const pointerX = centerX + pointerBaseRadius * Math.cos(monthRadian) - 1; // Center the 2px width
+          const pointerY = centerY + pointerBaseRadius * Math.sin(monthRadian);
+          pointer.style.left = pointerX + "px";
+          pointer.style.top = pointerY + "px";
+          pointer.style.transform = `rotate(${monthAngle}deg)`;
           pointer.style.display = "block";
-          pointer.style.transform = "rotate(" + monthAngle + "deg)";
         } else {
           pointer.style.display = "none";
         }
+
         const hours = now.getHours() + now.getMinutes() / 60;
         const hourAngle = (hours % 12) * 30;
         document.getElementById("hourHand").style.transform = "rotate(" + hourAngle + "deg)";
