@@ -27,18 +27,25 @@
     #holidayDisplay .event-date .to {
       color: gray;
     }
-    .clock {
+    .clock-container {
       width: 300px;
       height: 300px;
-      border: 10px solid #807466;
-      border-radius: 50%;
       position: relative;
       margin: 50px auto;
+      overflow: hidden; /* Clip content outside the container */
+    }
+    .clock {
+      width: 100%;
+      height: 100%;
+      border: 10px solid #807466;
+      border-radius: 50%;
+      position: absolute;
       background: #e0d9d1;
       box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4),
                   inset -0.5px 0.5px 5px rgba(0, 0, 0, 0.3);
       filter: drop-shadow(-5px 10px 8px rgba(0, 0, 0, 0.2));
-      z-index: 0; /* Below day ticks for now */
+      z-index: 1; /* Above ticks */
+      clip-path: circle(160px at 150px 150px); /* Clip to outer edge of border */
     }
     .season-overlay {
       position: absolute;
@@ -48,7 +55,7 @@
       height: 100%;
       border-radius: 50%;
       pointer-events: none;
-      z-index: 0;
+      z-index: 2;
       opacity: 0;
       transition: opacity 0.3s ease-in-out;
       background: conic-gradient(
@@ -78,7 +85,7 @@
       text-align: center;
       font-size: 0.9em;
       font-weight: bold;
-      z-index: 2;
+      z-index: 4;
       text-shadow: 0 0 10px rgba(255,255,255,1),
                    -2px 2px 2px rgba(0,0,0,0.4);
     }
@@ -88,7 +95,7 @@
       height: 6px;
       background: #807466;
       transform-origin: left center;
-      z-index: 2;
+      z-index: 4;
       box-shadow: 0 1px 2px rgba(0,0,0,0.4);
     }
     .day-tick {
@@ -96,7 +103,7 @@
       width: 1px;
       background: #ADD8E6; /* Light blue for even */
       opacity: 0.8;
-      z-index: 1; /* Above clock but below other elements */
+      z-index: 0; /* Below clock */
       display: none;
     }
     .day-tick.first {
@@ -130,7 +137,7 @@
       transform-origin: bottom center;
       transform: rotate(0deg);
       transition: transform 0.5s linear;
-      z-index: 2;
+      z-index: 5;
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
     }
     .pointer {
@@ -141,7 +148,7 @@
       left: calc(50% - 0.5px);
       top: -40px;
       transform-origin: bottom center;
-      z-index: 2;
+      z-index: 5;
       display: block;
     }
     .hour-hand {
@@ -153,7 +160,7 @@
       bottom: 150px;
       transform-origin: bottom center;
       transform: rotate(0deg);
-      z-index: 2;
+      z-index: 5;
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
       display: none;
     }
@@ -166,7 +173,7 @@
       bottom: 150px;
       transform-origin: bottom center;
       transform: rotate(0deg);
-      z-index: 2;
+      z-index: 5;
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
       display: none;
     }
@@ -179,7 +186,7 @@
       bottom: 150px;
       transform-origin: bottom center;
       transform: rotate(0deg);
-      z-index: 2;
+      z-index: 5;
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
       display: none;
     }
@@ -192,7 +199,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 3;
+      z-index: 6;
       box-shadow: -0.5px 2px 4px rgba(0,0,0,0.4),
                   inset 2px -2px 5px rgba(0,0,0,0.7);
     }
@@ -201,7 +208,7 @@
       width: 20px;
       height: 20px;
       background: transparent;
-      z-index: 5;
+      z-index: 7;
       cursor: pointer;
       display: none;
       transition: left 0.3s ease, top 0.3s ease;
@@ -238,7 +245,7 @@
       white-space: nowrap;
       font-size: 0.7em;
       color: white;
-      z-index: 6;
+      z-index: 8;
       cursor: move;
       user-select: none;
       line-height: 1;
@@ -248,7 +255,7 @@
       height: 1px;
       transform-origin: 0 50%;
       pointer-events: none;
-      z-index: 6;
+      z-index: 8;
     }
     .controls {
       margin-top: 105px;
@@ -355,7 +362,7 @@
       opacity: 0;
       transition: opacity 0.45s ease-in-out;
       position: absolute;
-      z-index: 2;
+      z-index: 4;
       pointer-events: none;
       text-shadow: 0 0 5px rgba(0,0,0,1);
     }
@@ -377,7 +384,7 @@
       color: white;
       opacity: 0;
       transition: opacity 0.2s ease-in-out;
-      z-index: 2;
+      z-index: 4;
       pointer-events: none;
       text-shadow: 0 0 10px rgba(0,0,0,1);
     }
@@ -400,17 +407,19 @@
 </head>
 <body>
   <div id="fpsDisplay">FPS: 0</div>
-  <div class="clock" id="clock">
-    <div class="season-overlay" id="seasonOverlay"></div>
-    <svg class="arcs" width="300" height="300" viewBox="0 0 300 300"></svg>
-    <div class="hand" id="hand">
-      <div class="pointer" id="pointer"></div>
+  <div class="clock-container" id="clock-container">
+    <div class="clock" id="clock">
+      <div class="season-overlay" id="seasonOverlay"></div>
+      <svg class="arcs" width="300" height="300" viewBox="0 0 300 300"></svg>
+      <div class="hand" id="hand">
+        <div class="pointer" id="pointer"></div>
+      </div>
+      <div class="hour-hand" id="hourHand"></div>
+      <div class="minute-hand" id="minuteHand"></div>
+      <div class="second-hand" id="secondHand"></div>
+      <div class="center"></div>
+      <div class="date-preview" id="datePreview"></div>
     </div>
-    <div class="hour-hand" id="hourHand"></div>
-    <div class="minute-hand" id="minuteHand"></div>
-    <div class="second-hand" id="secondHand"></div>
-    <div class="center"></div>
-    <div class="date-preview" id="datePreview"></div>
   </div>
   <div id="holidayDisplay"></div>
   <div class="controls">
@@ -486,6 +495,7 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", function() {
+      const clockContainer = document.getElementById("clock-container");
       const clock = document.getElementById("clock");
       const seasonOverlay = document.getElementById("seasonOverlay");
       const pointer = document.getElementById("pointer");
@@ -594,10 +604,10 @@
           dayCounter++;
         }
       });
-      clock.appendChild(fragment);
+      clockContainer.appendChild(fragment); // Append to container to allow clipping
 
       // Position each tick from the center
-      const ticks = clock.querySelectorAll('.day-tick');
+      const ticks = clockContainer.querySelectorAll('.day-tick');
       ticks.forEach(tick => {
         const computedStyle = window.getComputedStyle(tick);
         const visibleHeight = parseFloat(computedStyle.height); // e.g., 16px for even
@@ -972,7 +982,7 @@
         holidayDisplay.style.opacity = "0";
       });
 
-      clock.addEventListener("mousemove", function(e) {
+      clockContainer.addEventListener("mousemove", function(e) {
         const mouseX = e.clientX;
         const mouseY = e.clientY;
         const activeMarker = getClosestMarker(mouseX, mouseY);
@@ -983,7 +993,7 @@
         });
 
         if (visibilityMap["previewAllDates"]) {
-          const clockRect = clock.getBoundingClientRect();
+          const clockRect = clockContainer.getBoundingClientRect();
           const x = mouseX - clockRect.left - centerX;
           const y = mouseY - clockRect.top - centerY;
           const distance = Math.sqrt(x * x + y * y);
@@ -1027,7 +1037,7 @@
         }
       });
 
-      clock.addEventListener("click", function(e) {
+      clockContainer.addEventListener("click", function(e) {
         const clickX = e.clientX;
         const clickY = e.clientY;
         const activeMarker = getClosestMarker(clickX, clickY);
@@ -1037,7 +1047,7 @@
         }
       });
 
-      clock.addEventListener("mouseleave", function() {
+      clockContainer.addEventListener("mouseleave", function() {
         const markers = clock.querySelectorAll(".marker");
         markers.forEach(marker => marker.classList.remove("active"));
         events.forEach(event => {
@@ -1182,7 +1192,7 @@
           label.addEventListener("mousedown", function(e) {
             isDragging = true;
             const rect = label.getBoundingClientRect();
-            const clockRect = clock.getBoundingClientRect();
+            const clockRect = clockContainer.getBoundingClientRect();
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
             connector.style.transition = "none";
@@ -1190,7 +1200,7 @@
           });
           document.addEventListener("mousemove", function(e) {
             if (!isDragging) return;
-            const clockRect = clock.getBoundingClientRect();
+            const clockRect = clockContainer.getBoundingClientRect();
             const newX = e.clientX - offsetX - clockRect.left;
             const newY = e.clientY - offsetY - clockRect.top;
             label.style.left = newX + "px";
