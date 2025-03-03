@@ -66,7 +66,7 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 3; /* Above pointer */
+      z-index: 3;
       overflow: visible;
     }
     .arcs path {
@@ -106,13 +106,13 @@
     }
     .pointer {
       width: 1px;
-      height: 10px; /* From 150px (border) to 160px (dots) */
+      height: 10px;
       background: white;
       position: absolute;
-      left: calc(50% - 0.5px); /* Center within hand */
-      top: -40px; /* Position from hand's tip to reach 150px-160px */
+      left: calc(50% - 0.5px);
+      top: -40px;
       transform-origin: bottom center;
-      z-index: 2; /* Below dots and arcs */
+      z-index: 2;
       display: block;
     }
     .hour-hand {
@@ -172,7 +172,7 @@
       width: 20px;
       height: 20px;
       background: transparent;
-      z-index: 5; /* Above pointer and arcs */
+      z-index: 5;
       cursor: pointer;
       display: none;
       transition: left 0.3s ease, top 0.3s ease;
@@ -239,7 +239,7 @@
       width: 200px;
     }
     .controls-column.more-options {
-      display: none; /* Hidden by default */
+      display: none;
     }
     .checkbox-label {
       display: flex;
@@ -440,7 +440,7 @@
       const centerX = 150, centerY = 150;
       const triggerRadius = 15;
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const averageTemps = [30, 35, 45, 55, 65, 75, 80, 78, 70, 60, 50, 35]; // Monthly averages
+      const averageTemps = [30, 35, 45, 55, 65, 75, 80, 78, 70, 60, 50, 35];
       const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const temperatureElements = [];
       const events = new Map();
@@ -457,8 +457,52 @@
         "previewAllDates": false
       };
 
-      // Initialize pointer visibility on load
+      // Initialize pointer visibility
       pointer.style.display = visibilityMap["pointer"] ? "block" : "none";
+
+      // Initial clock setup
+      months.forEach((month, index) => {
+        const marker = document.createElement("div");
+        marker.className = "month";
+        marker.innerText = month;
+        marker.style.color = ([3,6,9,12].includes(index + 1)) ? "red" : "black";
+        marker.style.fontSize = ([3,6,9,12].includes(index + 1)) ? "1.0em" : "0.9em";
+        const angle = index * 30 + 30;
+        const radian = (angle - 90) * Math.PI / 180;
+        const radiusMarker = 130;
+        marker.style.left = (centerX + radiusMarker * Math.cos(radian) - 20) + "px";
+        marker.style.top = (centerY + radiusMarker * Math.sin(radian) - 10) + "px";
+        clock.appendChild(marker);
+
+        const tick = document.createElement("div");
+        tick.className = "tick";
+        const radiusTick = 150;
+        const tickX = centerX + radiusTick * Math.cos(radian);
+        const tickY = centerY + radiusTick * Math.sin(radian);
+        tick.style.left = (tickX - 1) + "px";
+        tick.style.top = tickY + "px";
+        tick.style.transformOrigin = "center 3px";
+        tick.style.transform = "translateY(-3px) rotate(" + angle + "deg)";
+        clock.appendChild(tick);
+
+        const temp = document.createElement("div");
+        temp.className = "temperature";
+        if (index + 1 === 3) temp.classList.add("march");
+        if (index + 1 === 5) temp.classList.add("may");
+        if (index + 1 === 6) temp.classList.add("june");
+        if (index + 1 === 7) temp.classList.add("july");
+        if (index + 1 === 8) temp.classList.add("august");
+        if (index + 1 === 9) temp.classList.add("september");
+        temp.innerText = averageTemps[index] + "°F";
+        const radiusTemp = 98;
+        const tempAngle = index * 30 + 45; // +15° clockwise
+        const tempRadian = (tempAngle - 90) * Math.PI / 180;
+        temp.style.left = (centerX + radiusTemp * Math.cos(tempRadian)) + "px";
+        temp.style.top = (centerY + radiusTemp * Math.sin(tempRadian)) + "px";
+        temp.style.transform = "translate(-50%, -50%)";
+        temperatureElements.push(temp);
+        clock.appendChild(temp);
+      });
 
       function getDaySuffix(day) {
         if (day >= 11 && day <= 13) return "th";
@@ -532,47 +576,336 @@
         return { name: name, month: holidayMonth, day: holidayDay };
       }
 
-      months.forEach((month, index) => {
-        const marker = document.createElement("div");
-        marker.className = "month";
-        marker.innerText = month;
-        marker.style.color = ([3,6,9,12].includes(index + 1)) ? "red" : "black";
-        marker.style.fontSize = ([3,6,9,12].includes(index + 1)) ? "1.0em" : "0.9em";
-        const angle = index * 30 + 30;
-        const radian = (angle - 90) * Math.PI / 180;
-        const radiusMarker = 130;
-        marker.style.left = (centerX + radiusMarker * Math.cos(radian) - 20) + "px";
-        marker.style.top = (centerY + radiusMarker * Math.sin(radian) - 10) + "px";
-        clock.appendChild(marker);
+      function updateHands() {
+        const now = new Date();
+        const monthIndex = now.getMonth() + 1; // 1-12
+        const totalDays = new Date(now.getFullYear(), monthIndex, 0).getDate();
+        const secondsInDay = 86400;
+        const secondsPassedToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        const fractionToday = secondsPassedToday / secondsInDay;
+        const fractionMonth = (now.getDate() - 1 + fractionToday) / totalDays;
+        const monthAngle = (monthIndex - 1 + fractionMonth + 1) * 30;
 
-        const tick = document.createElement("div");
-        tick.className = "tick";
-        const radiusTick = 150;
-        const tickX = centerX + radiusTick * Math.cos(radian);
-        const tickY = centerY + radiusTick * Math.sin(radian);
-        tick.style.left = (tickX - 1) + "px";
-        tick.style.top = tickY + "px";
-        tick.style.transformOrigin = "center 3px";
-        tick.style.transform = "translateY(-3px) rotate(" + angle + "deg)";
-        clock.appendChild(tick);
+        hand.style.transform = `rotate(${monthAngle}deg)`;
 
-        const temp = document.createElement("div");
-        temp.className = "temperature";
-        if (index + 1 === 3) temp.classList.add("march");
-        if (index + 1 === 5) temp.classList.add("may");
-        if (index + 1 === 6) temp.classList.add("june");
-        if (index + 1 === 7) temp.classList.add("july");
-        if (index + 1 === 8) temp.classList.add("august");
-        if (index + 1 === 9) temp.classList.add("september");
-        temp.innerText = averageTemps[index] + "°F";
-        const radiusTemp = 98;
-        const tempAngle = index * 30 + 45; // Rotated 15° clockwise
-        const tempRadian = (tempAngle - 90) * Math.PI / 180;
-        temp.style.left = (centerX + radiusTemp * Math.cos(tempRadian)) + "px";
-        temp.style.top = (centerY + radiusTemp * Math.sin(tempRadian)) + "px";
-        temp.style.transform = "translate(-50%, -50%)";
-        temperatureElements.push(temp);
-        clock.appendChild(temp);
+        const hours = now.getHours() + now.getMinutes() / 60;
+        const hourAngle = (hours % 12) * 30;
+        const hourHand = document.getElementById("hourHand");
+        if (hourHand) hourHand.style.transform = `rotate(${hourAngle}deg)`;
+
+        const minutes = now.getMinutes() + now.getSeconds() / 60;
+        const minuteAngle = minutes * 6;
+        const minuteHand = document.getElementById("minuteHand");
+        if (minuteHand) minuteHand.style.transform = `rotate(${minuteAngle}deg)`;
+
+        const seconds = now.getSeconds();
+        const secondAngle = seconds * 6;
+        const secondHand = document.getElementById("secondHand");
+        if (secondHand) secondHand.style.transform = `rotate(${secondAngle}deg)`;
+      }
+
+      // Initial clock update
+      updateHands();
+      setInterval(updateHands, 1000);
+
+      // Event listeners with null checks
+      const toggleMajorHolidays = document.getElementById("toggleMajorHolidays");
+      if (toggleMajorHolidays) {
+        toggleMajorHolidays.addEventListener("change", function() {
+          visibilityMap["major-holiday"] = this.checked;
+          const markers = clock.querySelectorAll(".major-holiday-marker");
+          const newlyVisible = [];
+          markers.forEach(marker => {
+            if (this.checked && marker.dataset.labelVisible !== "true") {
+              marker.style.left = marker.dataset.baseLeft;
+              marker.style.top = marker.dataset.baseTop;
+              marker.style.display = "block";
+              marker.classList.add("ripple-in");
+              newlyVisible.push(marker);
+              setTimeout(() => marker.classList.remove("ripple-in"), 300);
+            } else if (!this.checked && marker.dataset.labelVisible !== "true") {
+              marker.classList.add("ripple-out");
+              setTimeout(() => {
+                marker.classList.remove("ripple-out");
+                marker.style.display = "none";
+              }, 300);
+            }
+          });
+          setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
+        });
+      }
+
+      const toggleMinorHolidays = document.getElementById("toggleMinorHolidays");
+      if (toggleMinorHolidays) {
+        toggleMinorHolidays.addEventListener("change", function() {
+          visibilityMap["minor-holiday"] = this.checked;
+          const markers = clock.querySelectorAll(".minor-holiday-marker");
+          const newlyVisible = [];
+          markers.forEach(marker => {
+            if (this.checked && marker.dataset.labelVisible !== "true") {
+              marker.style.left = marker.dataset.baseLeft;
+              marker.style.top = marker.dataset.baseTop;
+              marker.style.display = "block";
+              marker.classList.add("ripple-in");
+              newlyVisible.push(marker);
+              setTimeout(() => marker.classList.remove("ripple-in"), 300);
+            } else if (!this.checked && marker.dataset.labelVisible !== "true") {
+              marker.classList.add("ripple-out");
+              setTimeout(() => {
+                marker.classList.remove("ripple-out");
+                marker.style.display = "none";
+              }, 300);
+            }
+          });
+          setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
+        });
+      }
+
+      const toggleBirthdays = document.getElementById("toggleBirthdays");
+      if (toggleBirthdays) {
+        toggleBirthdays.addEventListener("change", function() {
+          visibilityMap["birthday"] = this.checked;
+          const markers = clock.querySelectorAll(".birthday-marker");
+          const newlyVisible = [];
+          markers.forEach(marker => {
+            if (this.checked && marker.dataset.labelVisible !== "true") {
+              marker.style.left = marker.dataset.baseLeft;
+              marker.style.top = marker.dataset.baseTop;
+              marker.style.display = "block";
+              marker.classList.add("ripple-in");
+              newlyVisible.push(marker);
+              setTimeout(() => marker.classList.remove("ripple-in"), 300);
+            } else if (!this.checked && marker.dataset.labelVisible !== "true") {
+              marker.classList.add("ripple-out");
+              setTimeout(() => {
+                marker.classList.remove("ripple-out");
+                marker.style.display = "none";
+              }, 300);
+            }
+          });
+          setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
+        });
+      }
+
+      const toggleLifeEvents = document.getElementById("toggleLifeEvents");
+      if (toggleLifeEvents) {
+        toggleLifeEvents.addEventListener("change", function() {
+          visibilityMap["life"] = this.checked;
+          const markers = clock.querySelectorAll(".life-marker");
+          const newlyVisible = [];
+          markers.forEach(marker => {
+            if (this.checked && marker.dataset.labelVisible !== "true") {
+              marker.style.left = marker.dataset.baseLeft;
+              marker.style.top = marker.dataset.baseTop;
+              marker.style.display = "block";
+              marker.classList.add("ripple-in");
+              newlyVisible.push(marker);
+              setTimeout(() => marker.classList.remove("ripple-in"), 300);
+            } else if (!this.checked && marker.dataset.labelVisible !== "true") {
+              marker.classList.add("ripple-out");
+              setTimeout(() => {
+                marker.classList.remove("ripple-out");
+                marker.style.display = "none";
+              }, 300);
+            }
+          });
+          updateArcVisibility();
+          setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
+        });
+      }
+
+      const toggleCustomEvents = document.getElementById("toggleCustomEvents");
+      if (toggleCustomEvents) {
+        toggleCustomEvents.addEventListener("change", function() {
+          visibilityMap["custom"] = this.checked;
+          const markers = clock.querySelectorAll(".custom-marker");
+          const newlyVisible = [];
+          markers.forEach(marker => {
+            if (this.checked && marker.dataset.labelVisible !== "true") {
+              marker.style.left = marker.dataset.baseLeft;
+              marker.style.top = marker.dataset.baseTop;
+              marker.style.display = "block";
+              marker.classList.add("ripple-in");
+              newlyVisible.push(marker);
+              setTimeout(() => marker.classList.remove("ripple-in"), 300);
+            } else if (!this.checked && marker.dataset.labelVisible !== "true") {
+              marker.classList.add("ripple-out");
+              setTimeout(() => {
+                marker.classList.remove("ripple-out");
+                marker.style.display = "none";
+              }, 300);
+            }
+          });
+          setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
+        });
+      }
+
+      const togglePointer = document.getElementById("togglePointer");
+      if (togglePointer) {
+        togglePointer.addEventListener("change", function() {
+          visibilityMap["pointer"] = this.checked;
+          pointer.style.display = this.checked ? "block" : "none";
+        });
+      }
+
+      const togglePreviewAllDates = document.getElementById("togglePreviewAllDates");
+      if (togglePreviewAllDates) {
+        togglePreviewAllDates.addEventListener("change", function() {
+          visibilityMap["previewAllDates"] = this.checked;
+          if (!this.checked) datePreview.classList.remove("visible");
+        });
+      }
+
+      if (addCustomEventButton) {
+        addCustomEventButton.addEventListener("click", () => {
+          const name = prompt("Enter event name:");
+          const date = prompt("Enter date (MM-DD):");
+          if (name && date) {
+            const [month, day] = date.split("-").map(Number);
+            if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+              const eventId = `custom-${eventCounter++}`;
+              const marker = createMarker({ name, month, day }, "custom", eventId);
+              events.set(eventId, { type: "custom", name, startMarker: marker });
+              const toggle = document.getElementById("toggleCustomEvents");
+              if (toggle && !visibilityMap["custom"]) {
+                document.getElementById("toggleCustomEventsLabel").style.display = "flex";
+                toggle.checked = true;
+                visibilityMap["custom"] = true;
+              }
+              marker.style.display = "block";
+              marker.classList.add("ripple-in");
+              setTimeout(() => {
+                marker.classList.remove("ripple-in");
+                updateAllDotPositions();
+              }, 300);
+            } else {
+              alert("Invalid date format!");
+            }
+          }
+        });
+      }
+
+      const toggleSeasons = document.getElementById("toggleSeasons");
+      if (toggleSeasons) {
+        toggleSeasons.addEventListener("change", function() {
+          seasonOverlay.style.opacity = this.checked ? "1" : "0";
+        });
+      }
+
+      const toggleTemperatures = document.getElementById("toggleTemperatures");
+      if (toggleTemperatures) {
+        toggleTemperatures.addEventListener("change", function() {
+          temperatureElements.forEach(temp => temp.classList.toggle("visible", this.checked));
+        });
+      }
+
+      const toggleClockHands = document.getElementById("toggleClockHands");
+      if (toggleClockHands) {
+        toggleClockHands.addEventListener("change", function() {
+          const hourHand = document.getElementById("hourHand");
+          const minuteHand = document.getElementById("minuteHand");
+          const secondHand = document.getElementById("secondHand");
+          if (hourHand) hourHand.style.display = this.checked ? "block" : "none";
+          if (minuteHand) minuteHand.style.display = this.checked ? "block" : "none";
+          if (secondHand) secondHand.style.display = this.checked ? "block" : "none";
+        });
+      }
+
+      if (toggleMoreOptionsButton) {
+        toggleMoreOptionsButton.addEventListener("click", function() {
+          moreOptionsVisible = !moreOptionsVisible;
+          moreOptionsColumn.style.display = moreOptionsVisible ? "flex" : "none";
+          toggleMoreOptionsButton.textContent = moreOptionsVisible ? "Hide Options" : "More Options";
+        });
+      }
+
+      hand.addEventListener("mousemove", function(e) {
+        e.stopPropagation();
+        const now = new Date();
+        holidayDisplay.innerHTML = "Current Date<br><span class='event-date'>" + formatDate(now.getMonth() + 1, now.getDate()) + "</span>";
+        holidayDisplay.style.opacity = "1";
+      });
+
+      hand.addEventListener("mouseleave", function() {
+        holidayDisplay.style.opacity = "0";
+      });
+
+      clock.addEventListener("mousemove", function(e) {
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+        const activeMarker = getClosestMarker(mouseX, mouseY);
+        const markers = clock.querySelectorAll(".marker");
+        markers.forEach(marker => marker.classList.remove("active"));
+        events.forEach(event => {
+          if (event.arc) event.arc.setAttribute('stroke-width', '2');
+        });
+
+        if (visibilityMap["previewAllDates"]) {
+          const clockRect = clock.getBoundingClientRect();
+          const x = mouseX - clockRect.left - centerX;
+          const y = mouseY - clockRect.top - centerY;
+          const distance = Math.sqrt(x * x + y * y);
+          if (distance <= 185) {
+            let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90;
+            if (angleDeg < 0) angleDeg += 360;
+            const totalDegrees = 360;
+            const monthFraction = angleDeg / totalDegrees;
+            let monthProgress = monthFraction * 12;
+            let monthIndex = Math.floor(monthProgress);
+            let month = (monthIndex + 11) % 12 + 1; // 0° = Dec, 30° = Jan
+            const totalDays = new Date(new Date().getFullYear(), month, 0).getDate();
+            const dayFraction = (monthProgress - monthIndex) * totalDays;
+            const day = Math.floor(dayFraction) + 1;
+            datePreview.textContent = formatDate(month, day);
+            datePreview.classList.add("visible");
+          } else {
+            datePreview.classList.remove("visible");
+          }
+        }
+
+        if (activeMarker) {
+          const eventId = activeMarker.dataset.eventId;
+          if (eventId && events.has(eventId)) {
+            const event = events.get(eventId);
+            const eventMarkers = [event.startMarker];
+            if (event.endMarker) eventMarkers.push(event.endMarker);
+            eventMarkers.forEach(m => m.classList.add('active'));
+            if (event.endMarker) {
+              event.arc.setAttribute('stroke-width', '5');
+              const startDate = formatDate(event.startMarker.dataset.month, event.startMarker.dataset.day);
+              const endDate = formatDate(event.endMarker.dataset.month, event.endMarker.dataset.day);
+              holidayDisplay.innerHTML = event.name + "<br><span class='event-date'>" + startDate + " <span class='to'>to</span> " + endDate + "</span>";
+            } else {
+              holidayDisplay.innerHTML = event.name + "<br><span class='event-date'>" + event.startMarker.dataset.date + "</span>";
+            }
+          } else {
+            activeMarker.classList.add("active");
+            holidayDisplay.innerHTML = activeMarker.dataset.name + "<br><span class='event-date'>" + activeMarker.dataset.date + "</span>";
+          }
+          holidayDisplay.style.opacity = "1";
+        } else if (!holidayDisplay.style.opacity || holidayDisplay.style.opacity === "0") {
+          holidayDisplay.style.opacity = "0";
+        }
+      });
+
+      clock.addEventListener("click", function(e) {
+        const clickX = e.clientX;
+        const clickY = e.clientY;
+        const activeMarker = getClosestMarker(clickX, clickY);
+        if (activeMarker) {
+          e.stopPropagation();
+          toggleMarkerLabel(activeMarker);
+        }
+      });
+
+      clock.addEventListener("mouseleave", function() {
+        const markers = clock.querySelectorAll(".marker");
+        markers.forEach(marker => marker.classList.remove("active"));
+        events.forEach(event => {
+          if (event.arc) event.arc.setAttribute('stroke-width', '2');
+        });
+        holidayDisplay.style.opacity = "0";
+        datePreview.classList.remove("visible");
       });
 
       function updateConnector(marker) {
@@ -885,7 +1218,7 @@
           dots.forEach((dot, index) => {
             const angle = (dot.dataset.month - 1 + (dot.dataset.day - 1) / new Date(new Date().getFullYear(), dot.dataset.month, 0).getDate() + 1) * 30;
             const radian = (angle - 90) * Math.PI / 180;
-            const radius = 160 + index * 5; // 5px increments
+            const radius = 160 + index * 5;
             const markerCenterX = centerX + radius * Math.cos(radian);
             const markerCenterY = centerY + radius * Math.sin(radian);
             dot.style.left = (markerCenterX - 10) + "px";
@@ -959,6 +1292,32 @@
         events.set(eventId, { type: "minor-holiday", name: h.name, startMarker: marker });
       });
 
+      fetchBirthdays().then(birthdays => {
+        birthdays.forEach(b => {
+          const eventId = `birthday-${eventCounter++}`;
+          const startMarker = createMarker(b, "birthday", eventId);
+          events.set(eventId, { type: "birthday", name: b.name, startMarker });
+        });
+        updateAllDotPositions();
+      });
+
+      fetchLifeEvents().then(lifeEvents => {
+        lifeEvents.forEach(e => {
+          const eventId = `life-${eventCounter++}`;
+          const startData = { name: e.name, month: e.month, day: e.day, year: e.year };
+          const startMarker = createMarker(startData, "life", eventId);
+          if (e.endMonth && e.endDay) {
+            const endData = { name: e.name, month: e.endMonth, day: e.endDay, year: e.endYear };
+            const endMarker = createMarker(endData, "life", eventId);
+            const arc = createArc(startMarker, endMarker, "life");
+            events.set(eventId, { type: "life", name: e.name, startMarker, endMarker, arc });
+          } else {
+            events.set(eventId, { type: "life", name: e.name, startMarker });
+          }
+        });
+        updateAllDotPositions();
+      });
+
       async function fetchBirthdays() {
         try {
           const spreadsheetId = '1s2Dsf7QsAZkm49HAwrl8bhnNP5Z0t4Uwjqy2hSly108';
@@ -1015,321 +1374,6 @@
           return [];
         }
       }
-
-      fetchBirthdays().then(birthdays => {
-        birthdays.forEach(b => {
-          const eventId = `birthday-${eventCounter++}`;
-          const startMarker = createMarker(b, "birthday", eventId);
-          events.set(eventId, { type: "birthday", name: b.name, startMarker });
-        });
-        updateAllDotPositions();
-      });
-
-      fetchLifeEvents().then(lifeEvents => {
-        lifeEvents.forEach(e => {
-          const eventId = `life-${eventCounter++}`;
-          const startData = { name: e.name, month: e.month, day: e.day, year: e.year };
-          const startMarker = createMarker(startData, "life", eventId);
-          if (e.endMonth && e.endDay) {
-            const endData = { name: e.name, month: e.endMonth, day: e.endDay, year: e.endYear };
-            const endMarker = createMarker(endData, "life", eventId);
-            const arc = createArc(startMarker, endMarker, "life");
-            events.set(eventId, { type: "life", name: e.name, startMarker, endMarker, arc });
-          } else {
-            events.set(eventId, { type: "life", name: e.name, startMarker });
-          }
-        });
-        updateAllDotPositions();
-      });
-
-      document.getElementById("toggleMajorHolidays").addEventListener("change", function() {
-        visibilityMap["major-holiday"] = this.checked;
-        const markers = clock.querySelectorAll(".major-holiday-marker");
-        const newlyVisible = [];
-        markers.forEach(marker => {
-          if (this.checked && marker.dataset.labelVisible !== "true") {
-            marker.style.left = marker.dataset.baseLeft;
-            marker.style.top = marker.dataset.baseTop;
-            marker.style.display = "block";
-            marker.classList.add("ripple-in");
-            newlyVisible.push(marker);
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
-            marker.classList.add("ripple-out");
-            setTimeout(() => {
-              marker.classList.remove("ripple-out");
-              marker.style.display = "none";
-            }, 300);
-          }
-        });
-        setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
-      });
-
-      document.getElementById("toggleMinorHolidays").addEventListener("change", function() {
-        visibilityMap["minor-holiday"] = this.checked;
-        const markers = clock.querySelectorAll(".minor-holiday-marker");
-        const newlyVisible = [];
-        markers.forEach(marker => {
-          if (this.checked && marker.dataset.labelVisible !== "true") {
-            marker.style.left = marker.dataset.baseLeft;
-            marker.style.top = marker.dataset.baseTop;
-            marker.style.display = "block";
-            marker.classList.add("ripple-in");
-            newlyVisible.push(marker);
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
-            marker.classList.add("ripple-out");
-            setTimeout(() => {
-              marker.classList.remove("ripple-out");
-              marker.style.display = "none";
-            }, 300);
-          }
-        });
-        setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
-      });
-
-      document.getElementById("toggleBirthdays").addEventListener("change", function() {
-        visibilityMap["birthday"] = this.checked;
-        const markers = clock.querySelectorAll(".birthday-marker");
-        const newlyVisible = [];
-        markers.forEach(marker => {
-          if (this.checked && marker.dataset.labelVisible !== "true") {
-            marker.style.left = marker.dataset.baseLeft;
-            marker.style.top = marker.dataset.baseTop;
-            marker.style.display = "block";
-            marker.classList.add("ripple-in");
-            newlyVisible.push(marker);
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
-            marker.classList.add("ripple-out");
-            setTimeout(() => {
-              marker.classList.remove("ripple-out");
-              marker.style.display = "none";
-            }, 300);
-          }
-        });
-        setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
-      });
-
-      document.getElementById("toggleLifeEvents").addEventListener("change", function() {
-        visibilityMap["life"] = this.checked;
-        const markers = clock.querySelectorAll(".life-marker");
-        const newlyVisible = [];
-        markers.forEach(marker => {
-          if (this.checked && marker.dataset.labelVisible !== "true") {
-            marker.style.left = marker.dataset.baseLeft;
-            marker.style.top = marker.dataset.baseTop;
-            marker.style.display = "block";
-            marker.classList.add("ripple-in");
-            newlyVisible.push(marker);
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
-            marker.classList.add("ripple-out");
-            setTimeout(() => {
-              marker.classList.remove("ripple-out");
-              marker.style.display = "none";
-            }, 300);
-          }
-        });
-        updateArcVisibility();
-        setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
-      });
-
-      document.getElementById("toggleCustomEvents").addEventListener("change", function() {
-        visibilityMap["custom"] = this.checked;
-        const markers = clock.querySelectorAll(".custom-marker");
-        const newlyVisible = [];
-        markers.forEach(marker => {
-          if (this.checked && marker.dataset.labelVisible !== "true") {
-            marker.style.left = marker.dataset.baseLeft;
-            marker.style.top = marker.dataset.baseTop;
-            marker.style.display = "block";
-            marker.classList.add("ripple-in");
-            newlyVisible.push(marker);
-            setTimeout(() => marker.classList.remove("ripple-in"), 300);
-          } else if (!this.checked && marker.dataset.labelVisible !== "true") {
-            marker.classList.add("ripple-out");
-            setTimeout(() => {
-              marker.classList.remove("ripple-out");
-              marker.style.display = "none";
-            }, 300);
-          }
-        });
-        setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
-      });
-
-      document.getElementById("togglePointer").addEventListener("change", function() {
-        visibilityMap["pointer"] = this.checked;
-        pointer.style.display = this.checked ? "block" : "none";
-      });
-
-      document.getElementById("togglePreviewAllDates").addEventListener("change", function() {
-        visibilityMap["previewAllDates"] = this.checked;
-        if (!this.checked) datePreview.classList.remove("visible");
-      });
-
-      addCustomEventButton.addEventListener("click", () => {
-        const name = prompt("Enter event name:");
-        const date = prompt("Enter date (MM-DD):");
-        if (name && date) {
-          const [month, day] = date.split("-").map(Number);
-          if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-            const eventId = `custom-${eventCounter++}`;
-            const marker = createMarker({ name, month, day }, "custom", eventId);
-            events.set(eventId, { type: "custom", name, startMarker: marker });
-            const toggle = document.getElementById("toggleCustomEvents");
-            if (!visibilityMap["custom"]) {
-              document.getElementById("toggleCustomEventsLabel").style.display = "flex";
-              toggle.checked = true;
-              visibilityMap["custom"] = true;
-            }
-            marker.style.display = "block";
-            marker.classList.add("ripple-in");
-            setTimeout(() => {
-              marker.classList.remove("ripple-in");
-              updateAllDotPositions();
-            }, 300);
-          } else {
-            alert("Invalid date format!");
-          }
-        }
-      });
-
-      document.getElementById("toggleSeasons").addEventListener("change", function() {
-        seasonOverlay.style.opacity = this.checked ? "1" : "0";
-      });
-
-      document.getElementById("toggleTemperatures").addEventListener("change", function() {
-        temperatureElements.forEach(temp => temp.classList.toggle("visible", this.checked));
-      });
-
-      document.getElementById("toggleClockHands").addEventListener("change", function() {
-        document.getElementById("hourHand").style.display = this.checked ? "block" : "none";
-        document.getElementById("minuteHand").style.display = this.checked ? "block" : "none";
-        document.getElementById("secondHand").style.display = this.checked ? "block" : "none";
-      });
-
-      toggleMoreOptionsButton.addEventListener("click", function() {
-        moreOptionsVisible = !moreOptionsVisible;
-        moreOptionsColumn.style.display = moreOptionsVisible ? "flex" : "none";
-        toggleMoreOptionsButton.textContent = moreOptionsVisible ? "Hide Options" : "More Options";
-      });
-
-      // Hover on hand to show current date
-      hand.addEventListener("mousemove", function(e) {
-        e.stopPropagation();
-        const now = new Date();
-        holidayDisplay.innerHTML = "Current Date<br><span class='event-date'>" + formatDate(now.getMonth() + 1, now.getDate()) + "</span>";
-        holidayDisplay.style.opacity = "1";
-      });
-
-      hand.addEventListener("mouseleave", function() {
-        holidayDisplay.style.opacity = "0";
-      });
-
-      clock.addEventListener("mousemove", function(e) {
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
-        const activeMarker = getClosestMarker(mouseX, mouseY);
-        const markers = clock.querySelectorAll(".marker");
-        markers.forEach(marker => marker.classList.remove("active"));
-        events.forEach(event => {
-          if (event.arc) event.arc.setAttribute('stroke-width', '2');
-        });
-
-        if (visibilityMap["previewAllDates"]) {
-          const clockRect = clock.getBoundingClientRect();
-          const x = mouseX - clockRect.left - centerX;
-          const y = mouseY - clockRect.top - centerY;
-          const distance = Math.sqrt(x * x + y * y);
-          if (distance <= 185) {
-            let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90;
-            if (angleDeg < 0) angleDeg += 360;
-            const totalDegrees = 360;
-            const monthFraction = angleDeg / totalDegrees;
-            let monthProgress = monthFraction * 12;
-            let monthIndex = Math.floor(monthProgress);
-            let month = (monthIndex + 11) % 12 + 1; // 0° = Dec, 30° = Jan
-            const totalDays = new Date(new Date().getFullYear(), month, 0).getDate();
-            const dayFraction = (monthProgress - monthIndex) * totalDays;
-            const day = Math.floor(dayFraction) + 1;
-            datePreview.textContent = formatDate(month, day);
-            datePreview.classList.add("visible");
-          } else {
-            datePreview.classList.remove("visible");
-          }
-        }
-
-        if (activeMarker) {
-          const eventId = activeMarker.dataset.eventId;
-          if (eventId && events.has(eventId)) {
-            const event = events.get(eventId);
-            const eventMarkers = [event.startMarker];
-            if (event.endMarker) eventMarkers.push(event.endMarker);
-            eventMarkers.forEach(m => m.classList.add('active'));
-            if (event.endMarker) {
-              event.arc.setAttribute('stroke-width', '5');
-              const startDate = formatDate(event.startMarker.dataset.month, event.startMarker.dataset.day);
-              const endDate = formatDate(event.endMarker.dataset.month, event.endMarker.dataset.day);
-              holidayDisplay.innerHTML = event.name + "<br><span class='event-date'>" + startDate + " <span class='to'>to</span> " + endDate + "</span>";
-            } else {
-              holidayDisplay.innerHTML = event.name + "<br><span class='event-date'>" + event.startMarker.dataset.date + "</span>";
-            }
-          } else {
-            activeMarker.classList.add("active");
-            holidayDisplay.innerHTML = activeMarker.dataset.name + "<br><span class='event-date'>" + activeMarker.dataset.date + "</span>";
-          }
-          holidayDisplay.style.opacity = "1";
-        } else if (!holidayDisplay.style.opacity || holidayDisplay.style.opacity === "0") {
-          holidayDisplay.style.opacity = "0";
-        }
-      });
-
-      clock.addEventListener("click", function(e) {
-        const clickX = e.clientX;
-        const clickY = e.clientY;
-        const activeMarker = getClosestMarker(clickX, clickY);
-        if (activeMarker) {
-          e.stopPropagation();
-          toggleMarkerLabel(activeMarker);
-        }
-      });
-
-      clock.addEventListener("mouseleave", function() {
-        const markers = clock.querySelectorAll(".marker");
-        markers.forEach(marker => marker.classList.remove("active"));
-        events.forEach(event => {
-          if (event.arc) event.arc.setAttribute('stroke-width', '2');
-        });
-        holidayDisplay.style.opacity = "0";
-        datePreview.classList.remove("visible");
-      });
-
-      function updateHands() {
-        const now = new Date();
-        const monthIndex = now.getMonth() + 1; // 1-12
-        const totalDays = new Date(now.getFullYear(), monthIndex, 0).getDate();
-        const secondsInDay = 86400;
-        const secondsPassedToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-        const fractionToday = secondsPassedToday / secondsInDay;
-        const fractionMonth = (now.getDate() - 1 + fractionToday) / totalDays;
-        const monthAngle = (monthIndex - 1 + fractionMonth + 1) * 30;
-
-        hand.style.transform = `rotate(${monthAngle}deg)`;
-
-        const hours = now.getHours() + now.getMinutes() / 60;
-        const hourAngle = (hours % 12) * 30;
-        document.getElementById("hourHand").style.transform = `rotate(${hourAngle}deg)`;
-        const minutes = now.getMinutes() + now.getSeconds() / 60;
-        const minuteAngle = minutes * 6;
-        document.getElementById("minuteHand").style.transform = `rotate(${minuteAngle}deg)`;
-        const seconds = now.getSeconds();
-        const secondAngle = seconds * 6;
-        document.getElementById("secondHand").style.transform = `rotate(${secondAngle}deg)`;
-      }
-
-      updateHands();
-      setInterval(updateHands, 1000);
     });
   </script>
 </body>
