@@ -38,7 +38,6 @@
       box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4),
                   inset -0.5px 0.5px 5px rgba(0, 0, 0, 0.3);
       filter: drop-shadow(-5px 10px 8px rgba(0, 0, 0, 0.2));
-      overflow: hidden; /* Clip ticks inside */
       z-index: 1; /* Above day ticks */
     }
     .season-overlay {
@@ -95,35 +94,35 @@
     .day-tick {
       position: absolute;
       width: 1px;
-      height: 176px; /* Default even length */
+      height: 40px; /* Visible portion outside clock */
       background: #ADD8E6; /* Light blue */
       opacity: 0.8;
-      transform-origin: center 150px; /* Center of clock */
+      transform-origin: center bottom; /* Base at bottom */
       left: 50%;
       top: 50%;
-      z-index: -1; /* Below clock */
+      z-index: 0; /* Below clock */
       display: none;
     }
     .day-tick.first {
       background: #00FF00; /* Bright green */
-      height: 190px; /* 30px past 160 */
+      height: 40px; /* 30px past 160px */
       opacity: 1;
     }
     .day-tick.last {
       background: #FF0000; /* Bright red */
-      height: 190px; /* 30px past 160 */
+      height: 40px; /* 30px past 160px */
       opacity: 1;
     }
     .day-tick.even {
-      height: 176px; /* 16px past 160 */
+      height: 26px; /* 16px past 160px */
     }
     .day-tick.odd {
       background: white;
-      height: 180px; /* 20px past 160 */
+      height: 30px; /* 20px past 160px */
       opacity: 1;
     }
     .day-tick.fifteenth {
-      height: 187px; /* 27px past 160 */
+      height: 37px; /* 27px past 160px */
     }
     .hand {
       width: 4px;
@@ -579,24 +578,27 @@
           const totalDays = daysInMonth[month];
           const fraction = (day - 1) / totalDays;
           const angle = (month + fraction + 1) * 30;
+          const radian = (angle - 90) * Math.PI / 180;
+          const radius = 160 + 10; // Start at outer border (160px + 10px border)
+          const tickX = centerX + radius * Math.cos(radian);
+          const tickY = centerY + radius * Math.sin(radian);
           const tick = document.createElement("div");
           tick.className = "day-tick";
-          let translateY = 150; // Base translation for even ticks (176px height)
-          if (day === 1 || day === days) {
-            tick.classList.add(day === 1 ? "first" : "last");
-            translateY = 150; // 190px height
+          if (day === 1) {
+            tick.classList.add("first");
+          } else if (day === days) {
+            tick.classList.add("last");
           } else if (day % 2 === 0) {
             tick.classList.add("even");
-            translateY = 150; // 176px height
           } else {
             tick.classList.add("odd");
-            translateY = 150; // 180px height
           }
           if (day === 15 && day !== 1 && day !== days) {
             tick.classList.add("fifteenth");
-            translateY = 150; // 187px height
           }
-          tick.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(${translateY}px)`;
+          tick.style.left = (tickX - 0.5) + "px";
+          tick.style.top = (tickY) + "px";
+          tick.style.transform = `rotate(${angle}deg)`;
           dayTickElements.push(tick);
           clock.appendChild(tick);
           dayCounter++;
