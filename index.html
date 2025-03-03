@@ -329,15 +329,15 @@
     .date-preview {
       position: absolute;
       left: 50%;
-      top: 58%; /* Moved 10px lower */
+      top: 63%; /* Moved another ~15px lower from 58% */
       transform: translateX(-50%);
-      font-size: 0.9em; /* Increased from 0.7em */
+      font-size: 0.9em;
       color: white;
       opacity: 0;
       transition: opacity 0.2s ease-in-out;
       z-index: 3;
       pointer-events: none;
-      text-shadow: 0 0 10px rgba(0,0,0,1); /* Darker shadow */
+      text-shadow: 0 0 10px rgba(0,0,0,1);
     }
     .date-preview.visible {
       opacity: 1;
@@ -1214,33 +1214,22 @@
           if (event.arc) event.arc.setAttribute('stroke-width', '2');
         });
 
-        // Preview All Dates logic
+        // Preview All Dates logic using createMarker's angle calculation
         if (visibilityMap["previewAllDates"]) {
           const clockRect = clock.getBoundingClientRect();
           const x = mouseX - clockRect.left - centerX;
           const y = mouseY - clockRect.top - centerY;
           const distance = Math.sqrt(x * x + y * y);
-          if (distance <= 170) { // Extended to 170px
-            let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90;
+          if (distance <= 185) { // Extended to 185px
+            let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90; // Align with clock's 0 at top
             if (angleDeg < 0) angleDeg += 360;
-            // Adjust angle to align January 1st at 0 degrees (top)
-            angleDeg = (angleDeg + 270) % 360; // Shift by -90 degrees (270 = 360 - 90)
-            const totalAngle = 360;
-            const daysInYear = 365; // Simplified, ignoring leap years for preview
-            const anglePerDay = totalAngle / daysInYear;
-            const totalDaysPassed = Math.floor(angleDeg / anglePerDay);
-            let daysRemaining = totalDaysPassed;
-            let month = 1;
-            let year = new Date().getFullYear();
-            while (daysRemaining >= new Date(year, month, 0).getDate()) {
-              daysRemaining -= new Date(year, month, 0).getDate();
-              month++;
-              if (month > 12) {
-                month = 1;
-                year++;
-              }
-            }
-            const day = daysRemaining + 1; // +1 because days start at 1
+            const totalDegrees = 360;
+            const degreesPerMonth = totalDegrees / 12;
+            const monthIndex = Math.floor(angleDeg / degreesPerMonth);
+            const month = monthIndex + 1; // 1-12
+            const totalDays = new Date(new Date().getFullYear(), month, 0).getDate();
+            const fractionWithinMonth = (angleDeg % degreesPerMonth) / degreesPerMonth;
+            const day = Math.floor(fractionWithinMonth * totalDays) + 1; // +1 because days start at 1
             datePreview.textContent = formatDate(month, day);
             datePreview.classList.add("visible");
           } else {
