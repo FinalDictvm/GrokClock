@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Analog Clock with Months, Holidays, Birthdays, Seasons & DPT Events</title>
+  <title>Analog Clock with Months, Holidays, Birthdays, Seasons & Life Events</title>
   <style>
     /* General body styling: dark background, centered content, white text */
     body {
@@ -172,7 +172,7 @@
     .minor-holiday-dot,
     .birthday-dot,
     .custom-dot,
-    .dpt-dot {
+    .life-dot {
       position: absolute;
       top: 50%;
       left: 50%;
@@ -187,12 +187,12 @@
     .minor-holiday-dot { background: rgb(255, 165, 0); } /* Orange for minor holidays */
     .birthday-dot { background: rgb(255, 8, 201); } /* Violet */
     .custom-dot { background: rgb(4, 255, 0); } /* Green */
-    .dpt-dot { background: rgb(13, 126, 255); } /* Blue */
+    .life-dot { background: rgb(13, 126, 255); } /* Blue for Life Events */
     .active .major-holiday-dot,
     .active .minor-holiday-dot,
     .active .birthday-dot,
     .active .custom-dot,
-    .active .dpt-dot {
+    .active .life-dot {
       transform: translate(-50%, -50%) scale(2); /* Enlarge when hovered */
     }
 
@@ -265,7 +265,7 @@
     #toggleMajorHolidays:checked + .checkbox-custom::after { color: rgb(255, 0, 0); }
     #toggleMinorHolidays:checked + .checkbox-custom::after { color: rgb(255, 165, 0); }
     #toggleBirthdays:checked + .checkbox-custom::after { color: rgb(255, 8, 201); }
-    #toggleDptEvents:checked + .checkbox-custom::after { color: rgb(13, 126, 255); }
+    #toggleLifeEvents:checked + .checkbox-custom::after { color: rgb(13, 126, 255); }
     #toggleCustomEvents:checked + .checkbox-custom::after { color: rgb(4, 255, 0); }
     #toggleSeasons:checked + .checkbox-custom::after,
     #toggleTemperatures:checked + .checkbox-custom::after,
@@ -375,8 +375,8 @@
       <span class="checkbox-custom"></span>
     </label>
     <label class="checkbox-label">
-      DPT & Life Events
-      <input type="checkbox" id="toggleDptEvents">
+      Life Events
+      <input type="checkbox" id="toggleLifeEvents">
       <span class="checkbox-custom"></span>
     </label>
     <label class="checkbox-label" id="toggleCustomEventsLabel">
@@ -401,13 +401,13 @@
       const temperatureElements = [];
 
       /* Event hierarchy: defines stacking order for overlapping dates */
-      const typePriority = ["major-holiday", "minor-holiday", "birthday", "dpt", "custom"];
+      const typePriority = ["major-holiday", "minor-holiday", "birthday", "life", "custom"];
       /* Visibility map: tracks which event types are toggled on */
       const visibilityMap = {
         "major-holiday": false,
         "minor-holiday": false,
         "birthday": false,
-        "dpt": false,
+        "life": false,
         "custom": false
       };
 
@@ -852,7 +852,7 @@
       async function fetchBirthdays() {
         try {
           const spreadsheetId = '1s2Dsf7QsAZkm49HAwrl8bhnNP5Z0t4Uwjqy2hSly108';
-          const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json`;
+          const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=Birthdays`;
           const response = await fetch(url);
           const text = await response.text();
           const cleanedText = text.replace(/\/\*.*?\*\//g, '').replace(/google\.visualization\.Query\.setResponse\((.*)\);/, '$1').trim();
@@ -873,23 +873,39 @@
         }
       }
 
+      /* Fetches Life Events from Google Sheets, adds as markers */
+      async function fetchLifeEvents() {
+        try {
+          const spreadsheetId = '1s2Dsf7QsAZkm49HAwrl8bhnNP5Z0t4Uwjqy2hSly108';
+          const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=Life Events`;
+          const response = await fetch(url);
+          const text = await response.text();
+          const cleanedText = text.replace(/\/\*.*?\*\//g, '').replace(/google\.visualization\.Query\.setResponse\((.*)\);/, '$1').trim();
+          const json = JSON.parse(cleanedText);
+          const rows = json.table.rows;
+          return rows.map(row => {
+            const name = row.c[0]?.v || null;
+            const dateStr = row.c[1]?.v || null;
+            if (!name || !dateStr) return null;
+            const match = dateStr.match(/Date\((\d+),(\d+),(\d+)\)/);
+            if (!match) return null;
+            const [, year, month, day] = match.map(Number);
+            return { name, month: month + 1, day, year };
+          }).filter(e => e);
+        } catch (error) {
+          console.error('Error fetching Life Events:', error);
+          return [];
+        }
+      }
+
+      /* Load birthdays and life events from Google Sheets */
       fetchBirthdays().then(birthdays => {
         birthdays.forEach(b => createMarker(b, "birthday"));
       });
 
-      /* Predefined DPT & Life events as markers */
-      const dptEvents = [
-        { name: "Spring Break", month: 3, day: 1 },
-        { name: "End Spring Break", month: 3, day: 7 },
-        { name: "Management Interview Due", month: 3, day: 28 },
-        { name: "Final Clinical", month: 5, day: 5 },
-        { name: "End Final Clinical", month: 7, day: 4 },
-        { name: "Boards Exam", month: 7, day: 29 },
-        { name: "Hike", month: 8, day: 4 },
-        { name: "Get a Job!", month: 8, day: 11 },
-        { name: "Commencement", month: 4, day: 26 }
-      ];
-      dptEvents.forEach(event => createMarker(event, "dpt"));
+      fetchLifeEvents().then(lifeEvents => {
+        lifeEvents.forEach(e => createMarker(e, "life"));
+      });
 
       /* Toggle Major Holidays: shows/hides with ripple effect */
       document.getElementById("toggleMajorHolidays").addEventListener("change", function() {
@@ -963,10 +979,10 @@
         setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
       });
 
-      /* Toggle DPT Events: shows/hides with ripple effect */
-      document.getElementById("toggleDptEvents").addEventListener("change", function() {
-        visibilityMap["dpt"] = this.checked;
-        const markers = clock.querySelectorAll(".dpt-marker");
+      /* Toggle Life Events: shows/hides with ripple effect */
+      document.getElementById("toggleLifeEvents").addEventListener("change", function() {
+        visibilityMap["life"] = this.checked;
+        const markers = clock.querySelectorAll(".life-marker");
         const newlyVisible = [];
         markers.forEach(marker => {
           if (this.checked && marker.dataset.labelVisible !== "true") {
