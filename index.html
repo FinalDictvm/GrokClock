@@ -106,14 +106,14 @@
     }
     .pointer {
       width: 1px;
-      height: 40px; /* From hand tip (120px) to 160px radius */
+      height: 10px; /* From border (150px) to dots (160px) */
       background: white;
       position: absolute;
       left: 50%;
-      bottom: -40px; /* Extend from hand’s 120px tip */
+      top: 120px; /* Start at hand’s tip */
       transform: translateX(-50%);
       z-index: 2;
-      display: none;
+      display: block; /* Starts visible */
     }
     .hour-hand {
       width: 4px;
