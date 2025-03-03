@@ -105,17 +105,16 @@
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
     }
     .pointer {
-      width: 1px;
-      height: 60px; /* From clock border (r=150) to dot radius (r=160) plus some extra */
+      width: 2px;
+      height: 12px; /* Spans from 150px to 162px radius for visibility */
       background: white;
       position: absolute;
-      left: calc(50% - 0.5px);
-      bottom: 150px;
+      left: calc(50% - 1px);
+      bottom: 138px; /* Starts at 150px radius (center - height) */
       transform-origin: bottom center;
       transform: rotate(0deg);
       transition: transform 0.5s linear;
       z-index: 2;
-      box-shadow: 0 2px 3px rgba(0,0,0,0.3);
       display: none; /* Controlled by toggle */
     }
     .hour-hand {
@@ -335,7 +334,7 @@
     <div class="season-overlay" id="seasonOverlay"></div>
     <svg class="arcs" width="300" height="300" viewBox="0 0 300 300"></svg>
     <div class="hand" id="hand"></div>
-    <div class="pointer" id="pointer"></div> <!-- New pointer element -->
+    <div class="pointer" id="pointer"></div>
     <div class="hour-hand" id="hourHand"></div>
     <div class="minute-hand" id="minuteHand"></div>
     <div class="second-hand" id="secondHand"></div>
@@ -385,7 +384,7 @@
     </label>
     <label class="checkbox-label">
       Pointer
-      <input type="checkbox" id="togglePointer" checked> <!-- Starts toggled on -->
+      <input type="checkbox" id="togglePointer" checked>
       <span class="checkbox-custom"></span>
     </label>
   </div>
@@ -413,7 +412,7 @@
         "birthday": false,
         "life": false,
         "custom": false,
-        "pointer": true // Pointer starts enabled
+        "pointer": true
       };
 
       function getDaySuffix(day) {
