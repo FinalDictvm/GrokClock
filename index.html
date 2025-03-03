@@ -396,6 +396,11 @@
         <input type="checkbox" id="togglePreviewAllDates">
         <span class="checkbox-custom"></span>
       </label>
+      <label class="checkbox-label" id="toggleCustomEventsLabel">
+        Custom Events
+        <input type="checkbox" id="toggleCustomEvents">
+        <span class="checkbox-custom"></span>
+      </label>
     </div>
     <div class="controls-column more-options">
       <label class="checkbox-label">
@@ -457,10 +462,8 @@
         "previewAllDates": false
       };
 
-      // Initialize pointer visibility
       pointer.style.display = visibilityMap["pointer"] ? "block" : "none";
 
-      // Initial clock setup
       months.forEach((month, index) => {
         const marker = document.createElement("div");
         marker.className = "month";
@@ -495,7 +498,7 @@
         if (index + 1 === 9) temp.classList.add("september");
         temp.innerText = averageTemps[index] + "°F";
         const radiusTemp = 98;
-        const tempAngle = index * 30 + 45; // +15° clockwise
+        const tempAngle = index * 30 + 45;
         const tempRadian = (tempAngle - 90) * Math.PI / 180;
         temp.style.left = (centerX + radiusTemp * Math.cos(tempRadian)) + "px";
         temp.style.top = (centerY + radiusTemp * Math.sin(tempRadian)) + "px";
@@ -578,7 +581,7 @@
 
       function updateHands() {
         const now = new Date();
-        const monthIndex = now.getMonth() + 1; // 1-12
+        const monthIndex = now.getMonth() + 1;
         const totalDays = new Date(now.getFullYear(), monthIndex, 0).getDate();
         const secondsInDay = 86400;
         const secondsPassedToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
@@ -604,11 +607,9 @@
         if (secondHand) secondHand.style.transform = `rotate(${secondAngle}deg)`;
       }
 
-      // Initial clock update
       updateHands();
       setInterval(updateHands, 1000);
 
-      // Event listeners with null checks
       const toggleMajorHolidays = document.getElementById("toggleMajorHolidays");
       if (toggleMajorHolidays) {
         toggleMajorHolidays.addEventListener("change", function() {
@@ -849,13 +850,12 @@
             let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90;
             if (angleDeg < 0) angleDeg += 360;
             const totalDegrees = 360;
-            const monthFraction = angleDeg / totalDegrees;
-            let monthProgress = monthFraction * 12;
-            let monthIndex = Math.floor(monthProgress);
-            let month = (monthIndex + 11) % 12 + 1; // 0° = Dec, 30° = Jan
+            const anglePerMonth = totalDegrees / 12;
+            const monthIndex = Math.floor(angleDeg / anglePerMonth);
+            const month = (monthIndex + 11) % 12 + 1; // 0° = Dec, 30° = Jan
             const totalDays = new Date(new Date().getFullYear(), month, 0).getDate();
-            const dayFraction = (monthProgress - monthIndex) * totalDays;
-            const day = Math.floor(dayFraction) + 1;
+            const fractionWithinMonth = (angleDeg - (monthIndex * anglePerMonth)) / anglePerMonth;
+            const day = Math.floor(fractionWithinMonth * totalDays) + 1;
             datePreview.textContent = formatDate(month, day);
             datePreview.classList.add("visible");
           } else {
