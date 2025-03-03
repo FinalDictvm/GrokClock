@@ -104,6 +104,20 @@
       z-index: 1;
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
     }
+    .pointer {
+      width: 1px;
+      height: 60px; /* From clock border (r=150) to dot radius (r=160) plus some extra */
+      background: white;
+      position: absolute;
+      left: calc(50% - 0.5px);
+      bottom: 150px;
+      transform-origin: bottom center;
+      transform: rotate(0deg);
+      transition: transform 0.5s linear;
+      z-index: 2;
+      box-shadow: 0 2px 3px rgba(0,0,0,0.3);
+      display: none; /* Controlled by toggle */
+    }
     .hour-hand {
       width: 4px;
       height: 80px;
@@ -261,7 +275,8 @@
     #toggleCustomEvents:checked + .checkbox-custom::after { color: rgb(4, 255, 0); }
     #toggleSeasons:checked + .checkbox-custom::after,
     #toggleTemperatures:checked + .checkbox-custom::after,
-    #toggleClockHands:checked + .checkbox-custom::after { color: white; }
+    #toggleClockHands:checked + .checkbox-custom::after,
+    #togglePointer:checked + .checkbox-custom::after { color: white; }
     #toggleCustomEventsLabel {
       display: none;
     }
@@ -320,6 +335,7 @@
     <div class="season-overlay" id="seasonOverlay"></div>
     <svg class="arcs" width="300" height="300" viewBox="0 0 300 300"></svg>
     <div class="hand" id="hand"></div>
+    <div class="pointer" id="pointer"></div> <!-- New pointer element -->
     <div class="hour-hand" id="hourHand"></div>
     <div class="minute-hand" id="minuteHand"></div>
     <div class="second-hand" id="secondHand"></div>
@@ -367,6 +383,11 @@
       <input type="checkbox" id="toggleCustomEvents">
       <span class="checkbox-custom"></span>
     </label>
+    <label class="checkbox-label">
+      Pointer
+      <input type="checkbox" id="togglePointer" checked> <!-- Starts toggled on -->
+      <span class="checkbox-custom"></span>
+    </label>
   </div>
   <div class="custom-event-button">
     <button id="addCustomEvent">Add Custom Event</button>
@@ -376,6 +397,7 @@
     document.addEventListener("DOMContentLoaded", function() {
       const clock = document.getElementById("clock");
       const seasonOverlay = document.getElementById("seasonOverlay");
+      const pointer = document.getElementById("pointer");
       const centerX = 150, centerY = 150;
       const triggerRadius = 15;
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -390,7 +412,8 @@
         "minor-holiday": false,
         "birthday": false,
         "life": false,
-        "custom": false
+        "custom": false,
+        "pointer": true // Pointer starts enabled
       };
 
       function getDaySuffix(day) {
@@ -676,7 +699,7 @@
             const shouldShow = visibilityMap["life"] || 
                               (event.startMarker.dataset.labelVisible === "true") || 
                               (event.endMarker && event.endMarker.dataset.labelVisible === "true");
-            event.arc.style.display = shouldShow ? "block" : "none"; // Instant toggle, no animation
+            event.arc.style.display = shouldShow ? "block" : "none";
           }
         });
       }
@@ -754,7 +777,7 @@
         path.setAttribute('stroke', getColorForType(type));
         path.setAttribute('stroke-width', '2');
         path.setAttribute('fill', 'none');
-        path.style.display = "none"; // Initially hidden
+        path.style.display = "none";
         svg.appendChild(path);
         console.log('Arc created:', pathD);
         return path;
@@ -1090,6 +1113,11 @@
         setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
       });
 
+      document.getElementById("togglePointer").addEventListener("change", function() {
+        visibilityMap["pointer"] = this.checked;
+        pointer.style.display = this.checked ? "block" : "none";
+      });
+
       document.getElementById("addCustomEvent").addEventListener("click", () => {
         const name = prompt("Enter event name:");
         const date = prompt("Enter date (MM-DD):");
@@ -1196,6 +1224,12 @@
         const fractionMonth = (now.getDate() - 1 + fractionToday) / totalDays;
         const monthAngle = (monthIndex - 1 + fractionMonth + 1) * 30;
         document.getElementById("hand").style.transform = "rotate(" + monthAngle + "deg)";
+        if (visibilityMap["pointer"]) {
+          pointer.style.display = "block";
+          pointer.style.transform = "rotate(" + monthAngle + "deg)";
+        } else {
+          pointer.style.display = "none";
+        }
         const hours = now.getHours() + now.getMinutes() / 60;
         const hourAngle = (hours % 12) * 30;
         document.getElementById("hourHand").style.transform = "rotate(" + hourAngle + "deg)";
