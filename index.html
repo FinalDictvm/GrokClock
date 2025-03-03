@@ -105,13 +105,14 @@
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
     }
     .pointer {
-      width: 2px;
-      height: 12px; /* Spans from 150px to 162px radius */
+      width: 1px;
+      height: 10px; /* Spans from 150px to 160px radius */
       background: white;
       position: absolute;
       transform-origin: center bottom;
+      transition: transform 0.5s linear; /* Matches hand animation */
       z-index: 2;
-      display: none; /* Controlled by toggle */
+      display: none;
     }
     .hour-hand {
       width: 4px;
@@ -1223,8 +1224,9 @@
         document.getElementById("hand").style.transform = "rotate(" + monthAngle + "deg)";
 
         if (visibilityMap["pointer"]) {
-          const pointerBaseRadius = 150; // Start at outer border
-          const pointerX = centerX + pointerBaseRadius * Math.cos(monthRadian) - 1; // Center the 2px width
+          const handLength = 120; // Hand length from center
+          const pointerBaseRadius = handLength; // Start where hand ends
+          const pointerX = centerX + pointerBaseRadius * Math.cos(monthRadian) - 0.5; // Center the 1px width
           const pointerY = centerY + pointerBaseRadius * Math.sin(monthRadian);
           pointer.style.left = pointerX + "px";
           pointer.style.top = pointerY + "px";
