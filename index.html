@@ -98,7 +98,7 @@
       height: 20px;
       background: white;
       transform-origin: center bottom;
-      z-index: 0; /* Furthest back */
+      z-index: -1; /* Below everything */
       display: none;
     }
     .day-tick.first {
@@ -111,14 +111,15 @@
     }
     .day-tick.even {
       background: #ADD8E6; /* Light blue */
-      height: 20px;
+      height: 18px;
+      opacity: 0.8;
     }
     .day-tick.odd {
       background: white;
       height: 22px;
     }
     .day-tick.fifteenth {
-      height: 26px;
+      height: 29px;
     }
     .hand {
       width: 4px;
@@ -130,7 +131,7 @@
       transform-origin: bottom center;
       transform: rotate(0deg);
       transition: transform 0.5s linear;
-      z-index: 1;
+      z-index: 2; /* Above ticks */
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
     }
     .pointer {
@@ -313,6 +314,7 @@
     #toggleTemperatures:checked + .checkbox-custom::after,
     #toggleClockHands:checked + .checkbox-custom::after,
     #toggleDayTicks:checked + .checkbox-custom::after,
+    #toggleFPS:checked + .checkbox-custom::after,
     #togglePointer:checked + .checkbox-custom::after,
     #togglePreviewAllDates:checked + .checkbox-custom::after { color: white; }
     #toggleCustomEventsLabel {
@@ -383,9 +385,22 @@
     .date-preview.visible {
       opacity: 1;
     }
+    #fpsDisplay {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      font-size: 1em;
+      color: white;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 5px;
+      border-radius: 3px;
+      display: none;
+      z-index: 10;
+    }
   </style>
 </head>
 <body>
+  <div id="fpsDisplay">FPS: 0</div>
   <div class="clock" id="clock">
     <div class="season-overlay" id="seasonOverlay"></div>
     <svg class="arcs" width="300" height="300" viewBox="0 0 300 300"></svg>
@@ -454,6 +469,11 @@
         <span class="checkbox-custom"></span>
       </label>
       <label class="checkbox-label">
+        FPS
+        <input type="checkbox" id="toggleFPS">
+        <span class="checkbox-custom"></span>
+      </label>
+      <label class="checkbox-label">
         Pointer
         <input type="checkbox" id="togglePointer" checked>
         <span class="checkbox-custom"></span>
@@ -473,6 +493,7 @@
       const hand = document.getElementById("hand");
       const datePreview = document.getElementById("datePreview");
       const holidayDisplay = document.getElementById("holidayDisplay");
+      const fpsDisplay = document.getElementById("fpsDisplay");
       const moreOptionsColumn = document.querySelector(".controls-column.more-options");
       const toggleMoreOptionsButton = document.getElementById("toggleMoreOptions");
       const addCustomEventButton = document.getElementById("addCustomEvent");
@@ -496,6 +517,7 @@
         "custom": false,
         "pointer": true,
         "dayTicks": false,
+        "fps": false,
         "previewAllDates": false
       };
 
@@ -572,13 +594,31 @@
             tick.classList.add("fifteenth");
           }
           tick.style.left = (tickX - 0.5) + "px";
-          tick.style.top = (tickY - (day === 1 || day === days ? 32 : (day === 15 ? 26 : (day % 2 === 0 ? 20 : 22)))) + "px";
+          tick.style.top = (tickY - (day === 1 || day === days ? 32 : (day === 15 ? 29 : (day % 2 === 0 ? 18 : 22)))) + "px";
           tick.style.transform = `rotate(${angle}deg)`;
           dayTickElements.push(tick);
           clock.appendChild(tick);
           dayCounter++;
         }
       });
+
+      // FPS setup
+      let lastTime = performance.now();
+      let frameCount = 0;
+      let fps = 0;
+      function updateFPS() {
+        if (!visibilityMap["fps"]) return;
+        frameCount++;
+        const currentTime = performance.now();
+        const delta = (currentTime - lastTime) / 1000;
+        if (delta >= 1) {
+          fps = frameCount / delta;
+          fpsDisplay.textContent = `FPS: ${Math.round(fps)}`;
+          frameCount = 0;
+          lastTime = currentTime;
+        }
+        requestAnimationFrame(updateFPS);
+      }
 
       function getDaySuffix(day) {
         if (day >= 11 && day <= 13) return "th";
@@ -829,6 +869,15 @@
           dayTickElements.forEach(tick => {
             tick.style.display = this.checked ? "block" : "none";
           });
+        });
+      }
+
+      const toggleFPS = document.getElementById("toggleFPS");
+      if (toggleFPS) {
+        toggleFPS.addEventListener("change", function() {
+          visibilityMap["fps"] = this.checked;
+          fpsDisplay.style.display = this.checked ? "block" : "none";
+          if (this.checked) requestAnimationFrame(updateFPS);
         });
       }
 
