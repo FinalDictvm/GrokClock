@@ -105,24 +105,24 @@
     }
     .day-tick.first {
       background: #00FF00; /* Bright green */
-      height: 30px; /* 30px past 170px */
+      height: 30px; /* 30px past base radius */
       opacity: 1;
     }
     .day-tick.last {
       background: #FF0000; /* Bright red */
-      height: 30px; /* 30px past 170px */
+      height: 30px; /* 30px past base radius */
       opacity: 1;
     }
     .day-tick.even {
-      height: 16px; /* 16px past 170px */
+      height: 16px; /* 16px past base radius */
     }
     .day-tick.odd {
       background: white;
-      height: 20px; /* 20px past 170px */
+      height: 20px; /* 20px past base radius */
       opacity: 1;
     }
     .day-tick.fifteenth {
-      height: 27px; /* 27px past 170px */
+      height: 27px; /* 27px past base radius */
     }
     .hand {
       width: 4px;
@@ -572,12 +572,16 @@
 
       // Day Ticks setup (365 ticks for 2025, non-leap year)
       const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+      const r = 155; // Radius for inner edge of day ticks
       let dayCounter = 0;
       daysInMonth.forEach((days, month) => {
         for (let day = 1; day <= days; day++) {
           const totalDays = daysInMonth[month];
           const fraction = (day - 1) / totalDays;
           const angle = (month + fraction + 1) * 30;
+          const theta = (angle - 90) * Math.PI / 180;
+          const x = centerX + r * Math.cos(theta);
+          const y = centerY + r * Math.sin(theta);
           const tick = document.createElement("div");
           tick.className = "day-tick";
           if (day === 1) {
@@ -592,7 +596,9 @@
           if (day === 15 && day !== 1 && day !== days) {
             tick.classList.add("fifteenth");
           }
-          tick.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(170px)`; // Base at 170px, height extends outward
+          tick.style.left = `${x - 0.5}px`; // Center horizontally (width: 1px)
+          tick.style.top = `${y}px`;       // Top at desired radius
+          tick.style.transform = `rotate(${(angle + 180) % 360}deg)`; // Rotate to point outward
           dayTickElements.push(tick);
           clock.appendChild(tick);
           dayCounter++;
