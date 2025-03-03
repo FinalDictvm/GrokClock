@@ -33,7 +33,7 @@
       border: 10px solid #807466;
       border-radius: 50%;
       position: relative;
-      margin: 50px auto; /* Reverted to original */
+      margin: 50px auto;
       background: #e0d9d1;
       box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4),
                   inset -0.5px 0.5px 5px rgba(0, 0, 0, 0.3);
@@ -106,11 +106,12 @@
     }
     .pointer {
       width: 1px;
-      height: 10px; /* Spans from 150px to 160px radius */
+      height: 40px; /* From hand tip (120px) to 160px radius */
       background: white;
       position: absolute;
-      transform-origin: center bottom;
-      transition: transform 0.5s linear;
+      left: 50%;
+      bottom: -40px; /* Extend from hand’s 120px tip */
+      transform: translateX(-50%);
       z-index: 2;
       display: none;
     }
@@ -330,8 +331,9 @@
   <div class="clock" id="clock">
     <div class="season-overlay" id="seasonOverlay"></div>
     <svg class="arcs" width="300" height="300" viewBox="0 0 300 300"></svg>
-    <div class="hand" id="hand"></div>
-    <div class="pointer" id="pointer"></div>
+    <div class="hand" id="hand">
+      <div class="pointer" id="pointer"></div>
+    </div>
     <div class="hour-hand" id="hourHand"></div>
     <div class="minute-hand" id="minuteHand"></div>
     <div class="second-hand" id="secondHand"></div>
@@ -1112,12 +1114,7 @@
 
       document.getElementById("togglePointer").addEventListener("change", function() {
         visibilityMap["pointer"] = this.checked;
-        if (this.checked) {
-          pointer.style.display = "block";
-          updateHands(); // Ensure pointer rotates into place when toggled on
-        } else {
-          pointer.style.display = "none";
-        }
+        pointer.style.display = this.checked ? "block" : "none";
       });
 
       document.getElementById("addCustomEvent").addEventListener("click", () => {
@@ -1225,21 +1222,8 @@
         const fractionToday = secondsPassedToday / secondsInDay;
         const fractionMonth = (now.getDate() - 1 + fractionToday) / totalDays;
         const monthAngle = (monthIndex - 1 + fractionMonth + 1) * 30;
-        const monthRadian = (monthAngle - 90) * Math.PI / 180;
 
         hand.style.transform = "rotate(" + monthAngle + "deg)";
-
-        if (visibilityMap["pointer"]) {
-          const pointerBaseRadius = 150; // Start at outer border
-          const pointerX = centerX + pointerBaseRadius * Math.cos(monthRadian) - 0.5; // Center 1px width
-          const pointerY = centerY + pointerBaseRadius * Math.sin(monthRadian); // Align base with 150px radius
-          pointer.style.left = pointerX + "px";
-          pointer.style.top = pointerY + "px";
-          pointer.style.transform = `rotate(${monthAngle}deg)`;
-          pointer.style.display = "block";
-        } else {
-          pointer.style.display = "none";
-        }
 
         const hours = now.getHours() + now.getMinutes() / 60;
         const hourAngle = (hours % 12) * 30;
@@ -1250,16 +1234,6 @@
         const seconds = now.getSeconds();
         const secondAngle = seconds * 6;
         document.getElementById("secondHand").style.transform = "rotate(" + secondAngle + "deg)";
-      }
-
-      // Initialize at 0° for animation
-      hand.style.transform = "rotate(0deg)";
-      if (visibilityMap["pointer"]) {
-        const initialRadian = (-90) * Math.PI / 180; // Start at 0°
-        pointer.style.left = (centerX + 150 * Math.cos(initialRadian) - 0.5) + "px";
-        pointer.style.top = (centerY + 150 * Math.sin(initialRadian)) + "px";
-        pointer.style.transform = "rotate(0deg)";
-        pointer.style.display = "block";
       }
 
       updateHands();
