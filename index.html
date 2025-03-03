@@ -563,7 +563,7 @@
             marker.style.display = "none";
           }, 300);
         }
-        updateArcVisibility(marker); // Check arc visibility after hiding label
+        updateArcVisibility(marker);
         updateAllDotPositions();
       }
 
@@ -665,29 +665,18 @@
             e.stopPropagation();
             hideLabel(marker);
           });
-          updateArcVisibility(marker); // Show arc if life event marker is labeled
+          updateArcVisibility(marker);
         }
         updateAllDotPositions();
       }
 
-      /* Helper function to update arc visibility based on toggle and label state */
       function updateArcVisibility(marker = null) {
         events.forEach(event => {
           if (event.type === "life" && event.arc) {
             const shouldShow = visibilityMap["life"] || 
                               (event.startMarker.dataset.labelVisible === "true") || 
                               (event.endMarker && event.endMarker.dataset.labelVisible === "true");
-            if (shouldShow && getComputedStyle(event.arc).display === "none") {
-              event.arc.style.display = "block";
-              event.arc.classList.add("ripple-in");
-              setTimeout(() => event.arc.classList.remove("ripple-in"), 300);
-            } else if (!shouldShow && getComputedStyle(event.arc).display !== "none") {
-              event.arc.classList.add("ripple-out");
-              setTimeout(() => {
-                event.arc.classList.remove("ripple-out");
-                event.arc.style.display = "none";
-              }, 300);
-            }
+            event.arc.style.display = shouldShow ? "block" : "none"; // Instant toggle, no animation
           }
         });
       }
@@ -1074,7 +1063,7 @@
             }, 300);
           }
         });
-        updateArcVisibility(); // Sync arc visibility with toggle
+        updateArcVisibility();
         setTimeout(() => updateAllDotPositions(), newlyVisible.length ? 300 : 0);
       });
 
@@ -1150,7 +1139,7 @@
         markers.forEach(marker => marker.classList.remove("active"));
         const display = document.getElementById("holidayDisplay");
         events.forEach(event => {
-          if (event.arc) event.arc.setAttribute('stroke-width', '2'); // Reset to 2px
+          if (event.arc) event.arc.setAttribute('stroke-width', '2');
         });
 
         if (activeMarker) {
@@ -1161,7 +1150,7 @@
             if (event.endMarker) eventMarkers.push(event.endMarker);
             eventMarkers.forEach(m => m.classList.add('active'));
             if (event.endMarker) {
-              event.arc.setAttribute('stroke-width', '5'); // Grow to 5px on preview
+              event.arc.setAttribute('stroke-width', '5');
               const startDate = formatDate(event.startMarker.dataset.month, event.startMarker.dataset.day);
               const endDate = formatDate(event.endMarker.dataset.month, event.endMarker.dataset.day);
               display.innerHTML = event.name + "<br><span class='event-date'>" + startDate + " <span class='to'>to</span> " + endDate + "</span>";
