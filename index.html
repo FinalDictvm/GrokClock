@@ -94,7 +94,7 @@
     .day-tick {
       position: absolute;
       width: 1px;
-      height: 40px; /* Visible portion outside clock */
+      height: 16px; /* Visible portion outside clock (even) */
       background: #ADD8E6; /* Light blue */
       opacity: 0.8;
       transform-origin: center bottom; /* Base at bottom */
@@ -105,24 +105,24 @@
     }
     .day-tick.first {
       background: #00FF00; /* Bright green */
-      height: 40px; /* 30px past 160px */
+      height: 30px; /* 30px past 160px */
       opacity: 1;
     }
     .day-tick.last {
       background: #FF0000; /* Bright red */
-      height: 40px; /* 30px past 160px */
+      height: 30px; /* 30px past 160px */
       opacity: 1;
     }
     .day-tick.even {
-      height: 26px; /* 16px past 160px */
+      height: 16px; /* 16px past 160px */
     }
     .day-tick.odd {
       background: white;
-      height: 30px; /* 20px past 160px */
+      height: 20px; /* 20px past 160px */
       opacity: 1;
     }
     .day-tick.fifteenth {
-      height: 37px; /* 27px past 160px */
+      height: 27px; /* 27px past 160px */
     }
     .hand {
       width: 4px;
@@ -578,10 +578,6 @@
           const totalDays = daysInMonth[month];
           const fraction = (day - 1) / totalDays;
           const angle = (month + fraction + 1) * 30;
-          const radian = (angle - 90) * Math.PI / 180;
-          const radius = 160 + 10; // Start at outer border (160px + 10px border)
-          const tickX = centerX + radius * Math.cos(radian);
-          const tickY = centerY + radius * Math.sin(radian);
           const tick = document.createElement("div");
           tick.className = "day-tick";
           if (day === 1) {
@@ -596,9 +592,7 @@
           if (day === 15 && day !== 1 && day !== days) {
             tick.classList.add("fifteenth");
           }
-          tick.style.left = (tickX - 0.5) + "px";
-          tick.style.top = (tickY) + "px";
-          tick.style.transform = `rotate(${angle}deg)`;
+          tick.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(160px)`; // Base at 160px, height extends outward
           dayTickElements.push(tick);
           clock.appendChild(tick);
           dayCounter++;
