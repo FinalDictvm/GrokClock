@@ -43,6 +43,7 @@
       box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4),
                   inset -0.5px 0.5px 5px rgba(0, 0, 0, 0.3);
       filter: drop-shadow(-5px 10px 8px rgba(0, 0, 0, 0.2));
+      overflow: visible; /* Ensure dots on edge aren’t clipped */
     }
 
     /* Seasonal overlay: conic gradient for seasonal visual, togglable */
@@ -75,6 +76,7 @@
       height: 100%;
       pointer-events: none;
       z-index: 1; /* Above season overlay, below markers */
+      overflow: visible; /* Allow dots to extend beyond SVG bounds */
     }
     .arcs path {
       transition: stroke-width 0.2s ease; /* Smooth width change on hover */
@@ -749,7 +751,7 @@
         const fraction = (data.day - 1) / totalDays; // Day’s fraction within month
         const angle = (data.month - 1 + fraction + 1) * 30; // 30° per month + fraction
         const radian = (angle - 90) * Math.PI / 180;
-        const baseRadius = 140; // Adjusted to 140px to fit within SVG bounds
+        const baseRadius = 150; // Set to 150px to place dots on outer edge
         const markerCenterX = centerX + baseRadius * Math.cos(radian);
         const markerCenterY = centerY + baseRadius * Math.sin(radian);
         const container = document.createElement("div");
@@ -781,7 +783,7 @@
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         const startAngle = parseFloat(startMarker.dataset.angle);
         const endAngle = parseFloat(endMarker.dataset.angle);
-        const radius = 140; // Adjusted to 140px to match markers and fit SVG
+        const radius = 145; // Slightly less than 150px to keep arc within SVG
         const startRadian = (startAngle - 90) * Math.PI / 180; // Adjust for top-start orientation
         const endRadian = (endAngle - 90) * Math.PI / 180;
         const startX = centerX + radius * Math.cos(startRadian);
@@ -862,7 +864,7 @@
           dots.forEach((dot, index) => {
             const angle = (dot.dataset.month - 1 + (dot.dataset.day - 1) / new Date(new Date().getFullYear(), dot.dataset.month, 0).getDate() + 1) * 30;
             const radian = (angle - 90) * Math.PI / 180;
-            const radius = 140 + index * 4; // Adjusted to 140px base radius to fit SVG
+            const radius = 150 + index * 4; // Base radius 150px on outer edge, stack outward
             const markerCenterX = centerX + radius * Math.cos(radian);
             const markerCenterY = centerY + radius * Math.sin(radian);
             dot.style.left = (markerCenterX - 10) + "px";
