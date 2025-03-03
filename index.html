@@ -749,7 +749,7 @@
         const fraction = (data.day - 1) / totalDays; // Day’s fraction within month
         const angle = (data.month - 1 + fraction + 1) * 30; // 30° per month + fraction
         const radian = (angle - 90) * Math.PI / 180;
-        const baseRadius = 130; // Adjusted to 130px to fit within clock bounds
+        const baseRadius = 160; // Reverted to original 160px for outer circumference
         const markerCenterX = centerX + baseRadius * Math.cos(radian);
         const markerCenterY = centerY + baseRadius * Math.sin(radian);
         const container = document.createElement("div");
@@ -781,7 +781,7 @@
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         const startAngle = parseFloat(startMarker.dataset.angle);
         const endAngle = parseFloat(endMarker.dataset.angle);
-        const radius = 130; // Adjusted to 130px to align with markers and fit clock
+        const radius = 160; // Match marker radius for outer circumference
         const startRadian = (startAngle - 90) * Math.PI / 180; // Adjust for top-start orientation
         const endRadian = (endAngle - 90) * Math.PI / 180;
         const startX = centerX + radius * Math.cos(startRadian);
@@ -862,7 +862,7 @@
           dots.forEach((dot, index) => {
             const angle = (dot.dataset.month - 1 + (dot.dataset.day - 1) / new Date(new Date().getFullYear(), dot.dataset.month, 0).getDate() + 1) * 30;
             const radian = (angle - 90) * Math.PI / 180;
-            const radius = 130 + index * 4; // Adjusted base radius to 130px
+            const radius = 160 + index * 4; // Reverted to 160px base radius
             const markerCenterX = centerX + radius * Math.cos(radian);
             const markerCenterY = centerY + radius * Math.sin(radian);
             dot.style.left = (markerCenterX - 10) + "px";
@@ -1023,18 +1023,6 @@
             events.set(eventId, { type: "life", name: e.name, startMarker });
           }
         });
-        updateAllDotPositions();
-
-        // Test arc to ensure visibility (remove after confirming arcs work)
-        const testEventId = `test-${eventCounter++}`;
-        const testStart = { name: "Test", month: 3, day: 1 };
-        const testEnd = { name: "Test", month: 3, day: 7 };
-        const testStartMarker = createMarker(testStart, "life", testEventId);
-        const testEndMarker = createMarker(testEnd, "life", testEventId);
-        const testArc = createArc(testStartMarker, testEndMarker, "life");
-        testStartMarker.style.display = "block";
-        testEndMarker.style.display = "block";
-        visibilityMap["life"] = true; // Ensure test markers are visible
         updateAllDotPositions();
       });
 
