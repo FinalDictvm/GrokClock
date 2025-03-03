@@ -116,24 +116,19 @@
     }
     .day-tick.first {
       background: #00FF00; /* Bright green */
-      height: 20px;
-      opacity: 1;
-    }
-    .day-tick.last {
-      background: #FF0000; /* Bright red */
-      height: 20px;
+      height: 20px; /* Changed from 30px */
       opacity: 1;
     }
     .day-tick.even {
-      height: 4px;
+      height: 4px; /* Changed from 16px */
     }
     .day-tick.odd {
       background: white;
-      height: 7px;
+      height: 7px; /* Changed from 20px */
       opacity: 1;
     }
     .day-tick.fifteenth {
-      height: 16px;
+      height: 16px; /* Changed from 27px */
     }
     .hand {
       width: 4px;
@@ -598,14 +593,12 @@
           tick.className = "day-tick";
           if (day === 1) {
             tick.classList.add("first");
-          } else if (day === days) {
-            tick.classList.add("last");
           } else if (day % 2 === 0) {
             tick.classList.add("even");
           } else {
             tick.classList.add("odd");
           }
-          if (day === 15 && day !== 1 && day !== days) {
+          if (day === 15 && day !== 1) { // No need to check against last since it's removed
             tick.classList.add("fifteenth");
           }
           tick.dataset.angle = angle;
@@ -619,7 +612,7 @@
       const ticks = dayTicksContainer.querySelectorAll('.day-tick');
       ticks.forEach(tick => {
         const computedStyle = window.getComputedStyle(tick);
-        const visibleHeight = parseFloat(computedStyle.height); // e.g., 16px for even
+        const visibleHeight = parseFloat(computedStyle.height); // e.g., 4px for even
         const totalHeight = 170 + visibleHeight; // Adjusted for border (160 + 10)
         tick.style.height = totalHeight + 'px';
         tick.style.left = '159.5px'; // Center for 1px width (160 - 0.5)
