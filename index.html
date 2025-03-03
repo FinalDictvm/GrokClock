@@ -10,7 +10,6 @@
       text-align: center;
       color: white;
       position: relative;
-      margin: 0; /* Prevent body margin shifts */
     }
     #holidayDisplay {
       position: absolute;
@@ -34,7 +33,7 @@
       border: 10px solid #807466;
       border-radius: 50%;
       position: relative;
-      margin: 50px auto 0; /* Fixed top margin, no bottom auto */
+      margin: 50px auto; /* Reverted to original */
       background: #e0d9d1;
       box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4),
                   inset -0.5px 0.5px 5px rgba(0, 0, 0, 0.3);
@@ -1233,7 +1232,7 @@
         if (visibilityMap["pointer"]) {
           const pointerBaseRadius = 150; // Start at outer border
           const pointerX = centerX + pointerBaseRadius * Math.cos(monthRadian) - 0.5; // Center 1px width
-          const pointerY = centerY + pointerBaseRadius * Math.sin(monthRadian) - 5; // Adjust 5px up (half height)
+          const pointerY = centerY + pointerBaseRadius * Math.sin(monthRadian); // Align base with 150px radius
           pointer.style.left = pointerX + "px";
           pointer.style.top = pointerY + "px";
           pointer.style.transform = `rotate(${monthAngle}deg)`;
@@ -1258,7 +1257,7 @@
       if (visibilityMap["pointer"]) {
         const initialRadian = (-90) * Math.PI / 180; // Start at 0°
         pointer.style.left = (centerX + 150 * Math.cos(initialRadian) - 0.5) + "px";
-        pointer.style.top = (centerY + 150 * Math.sin(initialRadian) - 5) + "px";
+        pointer.style.top = (centerY + 150 * Math.sin(initialRadian)) + "px";
         pointer.style.transform = "rotate(0deg)";
         pointer.style.display = "block";
       }
