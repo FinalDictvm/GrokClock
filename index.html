@@ -97,7 +97,7 @@
       height: 16px; /* Visible portion outside clock (even) */
       background: #ADD8E6; /* Light blue */
       opacity: 0.8;
-      transform-origin: center bottom; /* Base at bottom */
+      transform-origin: center top; /* Base at top */
       left: 50%;
       top: 50%;
       z-index: 0; /* Below clock */
@@ -105,24 +105,24 @@
     }
     .day-tick.first {
       background: #00FF00; /* Bright green */
-      height: 30px; /* 30px past 160px */
+      height: 30px; /* 30px past 170px */
       opacity: 1;
     }
     .day-tick.last {
       background: #FF0000; /* Bright red */
-      height: 30px; /* 30px past 160px */
+      height: 30px; /* 30px past 170px */
       opacity: 1;
     }
     .day-tick.even {
-      height: 16px; /* 16px past 160px */
+      height: 16px; /* 16px past 170px */
     }
     .day-tick.odd {
       background: white;
-      height: 20px; /* 20px past 160px */
+      height: 20px; /* 20px past 170px */
       opacity: 1;
     }
     .day-tick.fifteenth {
-      height: 27px; /* 27px past 160px */
+      height: 27px; /* 27px past 170px */
     }
     .hand {
       width: 4px;
@@ -592,7 +592,7 @@
           if (day === 15 && day !== 1 && day !== days) {
             tick.classList.add("fifteenth");
           }
-          tick.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(160px)`; // Base at 160px, height extends outward
+          tick.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(170px)`; // Base at 170px, height extends outward
           dayTickElements.push(tick);
           clock.appendChild(tick);
           dayCounter++;
