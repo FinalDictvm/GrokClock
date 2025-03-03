@@ -224,12 +224,22 @@
     .controls {
       margin-top: 105px;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      width: 300px;
-      margin-left: calc(50% - 200px);
+      flex-direction: row;
+      justify-content: center;
+      gap: 20px;
+      width: 400px;
+      margin-left: auto;
       margin-right: auto;
+    }
+    .controls-column {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+      width: 200px;
+    }
+    .controls-column.more-options {
+      display: none; /* Hidden by default */
     }
     .checkbox-label {
       display: flex;
@@ -285,7 +295,7 @@
       margin-top: 19px;
       text-align: center;
     }
-    #addCustomEvent {
+    #addCustomEvent, #toggleMoreOptions {
       padding: 3px 6px;
       font-size: 0.7em;
       cursor: pointer;
@@ -294,6 +304,7 @@
       background-color: #807466;
       color: white;
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
+      margin: 5px 0;
     }
     @keyframes rippleIn {
       0% { transform: scale(0.5); opacity: 0; }
@@ -329,7 +340,7 @@
     .date-preview {
       position: absolute;
       left: 50%;
-      top: 63%; /* Moved another ~15px lower from 58% */
+      top: 63%;
       transform: translateX(-50%);
       font-size: 0.9em;
       color: white;
@@ -359,59 +370,59 @@
   </div>
   <div id="holidayDisplay"></div>
   <div class="controls">
-    <label class="checkbox-label">
-      Major Holidays
-      <input type="checkbox" id="toggleMajorHolidays">
-      <span class="checkbox-custom"></span>
-    </label>
-    <label class="checkbox-label">
-      Minor Holidays
-      <input type="checkbox" id="toggleMinorHolidays">
-      <span class="checkbox-custom"></span>
-    </label>
-    <label class="checkbox-label">
-      Birthdays
-      <input type="checkbox" id="toggleBirthdays">
-      <span class="checkbox-custom"></span>
-    </label>
-    <label class="checkbox-label">
-      Seasons
-      <input type="checkbox" id="toggleSeasons">
-      <span class="checkbox-custom"></span>
-    </label>
-    <label class="checkbox-label">
-      Temperatures
-      <input type="checkbox" id="toggleTemperatures">
-      <span class="checkbox-custom"></span>
-    </label>
-    <label class="checkbox-label">
-      Clock Hands
-      <input type="checkbox" id="toggleClockHands">
-      <span class="checkbox-custom"></span>
-    </label>
-    <label class="checkbox-label">
-      Life Events
-      <input type="checkbox" id="toggleLifeEvents">
-      <span class="checkbox-custom"></span>
-    </label>
-    <label class="checkbox-label" id="toggleCustomEventsLabel">
-      Custom Events
-      <input type="checkbox" id="toggleCustomEvents">
-      <span class="checkbox-custom"></span>
-    </label>
-    <label class="checkbox-label">
-      Pointer
-      <input type="checkbox" id="togglePointer" checked>
-      <span class="checkbox-custom"></span>
-    </label>
-    <label class="checkbox-label">
-      Preview All Dates
-      <input type="checkbox" id="togglePreviewAllDates">
-      <span class="checkbox-custom"></span>
-    </label>
+    <div class="controls-column always-visible">
+      <label class="checkbox-label">
+        Life Events
+        <input type="checkbox" id="toggleLifeEvents">
+        <span class="checkbox-custom"></span>
+      </label>
+      <label class="checkbox-label">
+        Birthdays
+        <input type="checkbox" id="toggleBirthdays">
+        <span class="checkbox-custom"></span>
+      </label>
+      <label class="checkbox-label">
+        Major Holidays
+        <input type="checkbox" id="toggleMajorHolidays">
+        <span class="checkbox-custom"></span>
+      </label>
+      <label class="checkbox-label">
+        Seasons
+        <input type="checkbox" id="toggleSeasons">
+        <span class="checkbox-custom"></span>
+      </label>
+      <label class="checkbox-label">
+        Preview All Dates
+        <input type="checkbox" id="togglePreviewAllDates">
+        <span class="checkbox-custom"></span>
+      </label>
+    </div>
+    <div class="controls-column more-options">
+      <label class="checkbox-label">
+        Minor Holidays
+        <input type="checkbox" id="toggleMinorHolidays">
+        <span class="checkbox-custom"></span>
+      </label>
+      <label class="checkbox-label">
+        Temperatures
+        <input type="checkbox" id="toggleTemperatures">
+        <span class="checkbox-custom"></span>
+      </label>
+      <label class="checkbox-label">
+        Clock Hands
+        <input type="checkbox" id="toggleClockHands">
+        <span class="checkbox-custom"></span>
+      </label>
+      <label class="checkbox-label">
+        Pointer
+        <input type="checkbox" id="togglePointer" checked>
+        <span class="checkbox-custom"></span>
+      </label>
+    </div>
   </div>
   <div class="custom-event-button">
     <button id="addCustomEvent">Add Custom Event</button>
+    <button id="toggleMoreOptions">More Options</button>
   </div>
 
   <script>
@@ -422,6 +433,9 @@
       const hand = document.getElementById("hand");
       const datePreview = document.getElementById("datePreview");
       const holidayDisplay = document.getElementById("holidayDisplay");
+      const moreOptionsColumn = document.querySelector(".controls-column.more-options");
+      const toggleMoreOptionsButton = document.getElementById("toggleMoreOptions");
+      let moreOptionsVisible = false;
       const centerX = 150, centerY = 150;
       const triggerRadius = 15;
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -551,8 +565,10 @@
         if (index + 1 === 9) temp.classList.add("september");
         temp.innerText = averageTemps[index] + "°F";
         const radiusTemp = 98;
-        temp.style.left = (centerX + radiusTemp * Math.cos(radian)) + "px";
-        temp.style.top = (centerY + radiusTemp * Math.sin(radian)) + "px";
+        const tempAngle = index * 30 + 45; // Rotated 15° clockwise
+        const tempRadian = (tempAngle - 90) * Math.PI / 180;
+        temp.style.left = (centerX + radiusTemp * Math.cos(tempRadian)) + "px";
+        temp.style.top = (centerY + radiusTemp * Math.sin(tempRadian)) + "px";
         temp.style.transform = "translate(-50%, -50%)";
         temperatureElements.push(temp);
         clock.appendChild(temp);
@@ -868,7 +884,7 @@
           dots.forEach((dot, index) => {
             const angle = (dot.dataset.month - 1 + (dot.dataset.day - 1) / new Date(new Date().getFullYear(), dot.dataset.month, 0).getDate() + 1) * 30;
             const radian = (angle - 90) * Math.PI / 180;
-            const radius = 160 + index * 4;
+            const radius = 160 + index * 5; // Increased to 5px increments
             const markerCenterX = centerX + radius * Math.cos(radian);
             const markerCenterY = centerY + radius * Math.sin(radian);
             dot.style.left = (markerCenterX - 10) + "px";
@@ -1192,6 +1208,12 @@
         document.getElementById("secondHand").style.display = this.checked ? "block" : "none";
       });
 
+      toggleMoreOptionsButton.addEventListener("click", function() {
+        moreOptionsVisible = !moreOptionsVisible;
+        moreOptionsColumn.style.display = moreOptionsVisible ? "flex" : "none";
+        toggleMoreOptionsButton.textContent = moreOptionsVisible ? "Hide Options" : "More Options";
+      });
+
       // Hover on hand to show current date
       hand.addEventListener("mousemove", function(e) {
         e.stopPropagation(); // Prevent clock mousemove from overriding
@@ -1214,22 +1236,25 @@
           if (event.arc) event.arc.setAttribute('stroke-width', '2');
         });
 
-        // Preview All Dates logic using createMarker's angle calculation
+        // Preview All Dates logic aligned with clock's system
         if (visibilityMap["previewAllDates"]) {
           const clockRect = clock.getBoundingClientRect();
           const x = mouseX - clockRect.left - centerX;
           const y = mouseY - clockRect.top - centerY;
           const distance = Math.sqrt(x * x + y * y);
-          if (distance <= 185) { // Extended to 185px
-            let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90; // Align with clock's 0 at top
+          if (distance <= 185) {
+            let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90; // 0° at top
             if (angleDeg < 0) angleDeg += 360;
+            // Adjust to match clock: December 1st at 0°, January 1st at 30°, etc.
             const totalDegrees = 360;
             const degreesPerMonth = totalDegrees / 12;
-            const monthIndex = Math.floor(angleDeg / degreesPerMonth);
-            const month = monthIndex + 1; // 1-12
+            let monthFraction = angleDeg / totalDegrees; // 0 to 1 over 360°
+            let monthProgress = monthFraction * 12; // 0 to 12 months
+            let monthIndex = Math.floor(monthProgress); // 0-11
+            let month = (monthIndex + 11) % 12 + 1; // Shift so 0° = Dec (12), 30° = Jan (1)
             const totalDays = new Date(new Date().getFullYear(), month, 0).getDate();
-            const fractionWithinMonth = (angleDeg % degreesPerMonth) / degreesPerMonth;
-            const day = Math.floor(fractionWithinMonth * totalDays) + 1; // +1 because days start at 1
+            const dayFraction = (monthProgress - monthIndex) * totalDays;
+            const day = Math.floor(dayFraction) + 1;
             datePreview.textContent = formatDate(month, day);
             datePreview.classList.add("visible");
           } else {
