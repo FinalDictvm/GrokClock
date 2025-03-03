@@ -66,7 +66,7 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 1;
+      z-index: 3; /* Above pointer */
       overflow: visible;
     }
     .arcs path {
@@ -105,15 +105,15 @@
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
     }
     .pointer {
-      width: 2px; /* Slightly thicker for visibility */
+      width: 1px; /* Changed to 1px */
       height: 10px; /* From 150px (border) to 160px (dots) */
       background: white;
       position: absolute;
-      left: calc(50% - 1px); /* Center within hand */
-      top: -40px; /* Position from hand's tip (120px) to reach 150px from center */
+      left: calc(50% - 0.5px); /* Center within hand */
+      top: -40px; /* Position from hand's tip to reach 150px-160px */
       transform-origin: bottom center;
-      z-index: 2;
-      display: block; /* Controlled by JS */
+      z-index: 2; /* Below dots and arcs */
+      display: block;
     }
     .hour-hand {
       width: 4px;
@@ -172,7 +172,7 @@
       width: 20px;
       height: 20px;
       background: transparent;
-      z-index: 5;
+      z-index: 5; /* Above pointer and arcs */
       cursor: pointer;
       display: none;
       transition: left 0.3s ease, top 0.3s ease;
@@ -273,7 +273,8 @@
     #toggleSeasons:checked + .checkbox-custom::after,
     #toggleTemperatures:checked + .checkbox-custom::after,
     #toggleClockHands:checked + .checkbox-custom::after,
-    #togglePointer:checked + .checkbox-custom::after { color: white; }
+    #togglePointer:checked + .checkbox-custom::after,
+    #togglePreviewAllDates:checked + .checkbox-custom::after { color: white; }
     #toggleCustomEventsLabel {
       display: none;
     }
@@ -325,6 +326,22 @@
     .temperature.july.visible { opacity: 1.0; }
     .temperature.august.visible { opacity: 0.95; }
     .temperature.september.visible { opacity: 0.85; }
+    .date-preview {
+      position: absolute;
+      left: 50%;
+      top: 55%; /* Below center dot */
+      transform: translateX(-50%);
+      font-size: 0.7em;
+      color: white;
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
+      z-index: 3;
+      pointer-events: none;
+      text-shadow: 0 0 8px rgba(0,0,0,0.9); /* Darker shadow */
+    }
+    .date-preview.visible {
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -338,6 +355,7 @@
     <div class="minute-hand" id="minuteHand"></div>
     <div class="second-hand" id="secondHand"></div>
     <div class="center"></div>
+    <div class="date-preview" id="datePreview"></div>
   </div>
   <div id="holidayDisplay"></div>
   <div class="controls">
@@ -386,6 +404,11 @@
       <input type="checkbox" id="togglePointer" checked>
       <span class="checkbox-custom"></span>
     </label>
+    <label class="checkbox-label">
+      Preview All Dates
+      <input type="checkbox" id="togglePreviewAllDates">
+      <span class="checkbox-custom"></span>
+    </label>
   </div>
   <div class="custom-event-button">
     <button id="addCustomEvent">Add Custom Event</button>
@@ -397,10 +420,13 @@
       const seasonOverlay = document.getElementById("seasonOverlay");
       const pointer = document.getElementById("pointer");
       const hand = document.getElementById("hand");
+      const datePreview = document.getElementById("datePreview");
+      const holidayDisplay = document.getElementById("holidayDisplay");
       const centerX = 150, centerY = 150;
       const triggerRadius = 15;
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const averageTemps = [30, 35, 45, 55, 65, 75, 80, 78, 70, 60, 50, 35];
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const temperatureElements = [];
       const events = new Map();
       let eventCounter = 0;
@@ -412,7 +438,8 @@
         "birthday": false,
         "life": false,
         "custom": false,
-        "pointer": true
+        "pointer": true,
+        "previewAllDates": false
       };
 
       // Initialize pointer visibility on load
@@ -429,7 +456,6 @@
       }
 
       function formatDate(month, day) {
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         return monthNames[month - 1] + " " + day + getDaySuffix(day);
       }
 
@@ -675,7 +701,7 @@
           });
           document.addEventListener("mousemove", function(e) {
             if (!isDragging) return;
-            const clockRect = clock.getBoundingClientRect();
+            const clockRect = clock.getBoundingClockRect();
             const newX = e.clientX - offsetX - clockRect.left;
             const newY = e.clientY - offsetY - clockRect.top;
             label.style.left = newX + "px";
@@ -1120,6 +1146,11 @@
         pointer.style.display = this.checked ? "block" : "none";
       });
 
+      document.getElementById("togglePreviewAllDates").addEventListener("change", function() {
+        visibilityMap["previewAllDates"] = this.checked;
+        if (!this.checked) datePreview.classList.remove("visible");
+      });
+
       document.getElementById("addCustomEvent").addEventListener("click", () => {
         const name = prompt("Enter event name:");
         const date = prompt("Enter date (MM-DD):");
@@ -1161,16 +1192,50 @@
         document.getElementById("secondHand").style.display = this.checked ? "block" : "none";
       });
 
+      // Hover on hand to show current date
+      hand.addEventListener("mousemove", function(e) {
+        e.stopPropagation(); // Prevent clock mousemove from overriding
+        const now = new Date();
+        holidayDisplay.innerHTML = "Current Date<br><span class='event-date'>" + formatDate(now.getMonth() + 1, now.getDate()) + "</span>";
+        holidayDisplay.style.opacity = 1;
+      });
+
+      hand.addEventListener("mouseleave", function() {
+        holidayDisplay.style.opacity = 0;
+      });
+
       clock.addEventListener("mousemove", function(e) {
         const mouseX = e.clientX;
         const mouseY = e.clientY;
         const activeMarker = getClosestMarker(mouseX, mouseY);
         const markers = clock.querySelectorAll(".marker");
         markers.forEach(marker => marker.classList.remove("active"));
-        const display = document.getElementById("holidayDisplay");
         events.forEach(event => {
           if (event.arc) event.arc.setAttribute('stroke-width', '2');
         });
+
+        // Preview All Dates logic
+        if (visibilityMap["previewAllDates"]) {
+          const clockRect = clock.getBoundingClientRect();
+          const x = mouseX - clockRect.left - centerX;
+          const y = mouseY - clockRect.top - centerY;
+          const distance = Math.sqrt(x * x + y * y);
+          if (distance <= 150) { // Within clock radius
+            let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90;
+            if (angleDeg < 0) angleDeg += 360;
+            const totalAngle = 360;
+            const anglePerMonth = totalAngle / 12;
+            const monthIndex = Math.floor(angleDeg / anglePerMonth);
+            const month = (monthIndex % 12) + 1;
+            const totalDays = new Date(new Date().getFullYear(), month, 0).getDate();
+            const monthFraction = (angleDeg % anglePerMonth) / anglePerMonth;
+            const day = Math.floor(monthFraction * totalDays) + 1;
+            datePreview.textContent = formatDate(month, day);
+            datePreview.classList.add("visible");
+          } else {
+            datePreview.classList.remove("visible");
+          }
+        }
 
         if (activeMarker) {
           const eventId = activeMarker.dataset.eventId;
@@ -1183,17 +1248,17 @@
               event.arc.setAttribute('stroke-width', '5');
               const startDate = formatDate(event.startMarker.dataset.month, event.startMarker.dataset.day);
               const endDate = formatDate(event.endMarker.dataset.month, event.endMarker.dataset.day);
-              display.innerHTML = event.name + "<br><span class='event-date'>" + startDate + " <span class='to'>to</span> " + endDate + "</span>";
+              holidayDisplay.innerHTML = event.name + "<br><span class='event-date'>" + startDate + " <span class='to'>to</span> " + endDate + "</span>";
             } else {
-              display.innerHTML = event.name + "<br><span class='event-date'>" + event.startMarker.dataset.date + "</span>";
+              holidayDisplay.innerHTML = event.name + "<br><span class='event-date'>" + event.startMarker.dataset.date + "</span>";
             }
           } else {
             activeMarker.classList.add("active");
-            display.innerHTML = activeMarker.dataset.name + "<br><span class='event-date'>" + activeMarker.dataset.date + "</span>";
+            holidayDisplay.innerHTML = activeMarker.dataset.name + "<br><span class='event-date'>" + activeMarker.dataset.date + "</span>";
           }
-          display.style.opacity = 1;
-        } else {
-          display.style.opacity = 0;
+          holidayDisplay.style.opacity = 1;
+        } else if (!holidayDisplay.style.opacity || holidayDisplay.style.opacity === "0") {
+          holidayDisplay.style.opacity = 0;
         }
       });
 
@@ -1213,7 +1278,8 @@
         events.forEach(event => {
           if (event.arc) event.arc.setAttribute('stroke-width', '2');
         });
-        document.getElementById("holidayDisplay").style.opacity = 0;
+        holidayDisplay.style.opacity = 0;
+        datePreview.classList.remove("visible");
       });
 
       function updateHands() {
