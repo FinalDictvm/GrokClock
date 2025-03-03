@@ -27,18 +27,33 @@
     #holidayDisplay .event-date .to {
       color: gray;
     }
+    .clock-container {
+      position: relative;
+      width: 320px; /* Clock width (300px) + border (10px * 2) */
+      height: 320px;
+      margin: 50px auto;
+    }
     .clock {
       width: 300px;
       height: 300px;
       border: 10px solid #807466;
       border-radius: 50%;
-      position: relative;
-      margin: 50px auto;
+      position: absolute;
+      top: 0;
+      left: 0;
       background: #e0d9d1;
       box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4),
                   inset -0.5px 0.5px 5px rgba(0, 0, 0, 0.3);
       filter: drop-shadow(-5px 10px 8px rgba(0, 0, 0, 0.2));
-      z-index: 2; /* Increased to be above day ticks */
+      z-index: 2; /* Above day ticks */
+    }
+    .day-ticks-container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: 0; /* Below clock */
     }
     .season-overlay {
       position: absolute;
@@ -48,7 +63,7 @@
       height: 100%;
       border-radius: 50%;
       pointer-events: none;
-      z-index: 2; /* Matches clock, above day ticks */
+      z-index: 2; /* Matches clock */
       opacity: 0;
       transition: opacity 0.3s ease-in-out;
       background: conic-gradient(
@@ -96,7 +111,7 @@
       width: 1px;
       background: #ADD8E6; /* Light blue for even */
       opacity: 0.8;
-      z-index: 0; /* Below clock */
+      z-index: 0; /* Below clock, redundant but explicit */
       display: none;
     }
     .day-tick.first {
@@ -400,17 +415,20 @@
 </head>
 <body>
   <div id="fpsDisplay">FPS: 0</div>
-  <div class="clock" id="clock">
-    <div class="season-overlay" id="seasonOverlay"></div>
-    <svg class="arcs" width="300" height="300" viewBox="0 0 300 300"></svg>
-    <div class="hand" id="hand">
-      <div class="pointer" id="pointer"></div>
+  <div class="clock-container">
+    <div class="day-ticks-container" id="dayTicksContainer"></div>
+    <div class="clock" id="clock">
+      <div class="season-overlay" id="seasonOverlay"></div>
+      <svg class="arcs" width="300" height="300" viewBox="0 0 300 300"></svg>
+      <div class="hand" id="hand">
+        <div class="pointer" id="pointer"></div>
+      </div>
+      <div class="hour-hand" id="hourHand"></div>
+      <div class="minute-hand" id="minuteHand"></div>
+      <div class="second-hand" id="secondHand"></div>
+      <div class="center"></div>
+      <div class="date-preview" id="datePreview"></div>
     </div>
-    <div class="hour-hand" id="hourHand"></div>
-    <div class="minute-hand" id="minuteHand"></div>
-    <div class="second-hand" id="secondHand"></div>
-    <div class="center"></div>
-    <div class="date-preview" id="datePreview"></div>
   </div>
   <div id="holidayDisplay"></div>
   <div class="controls">
@@ -487,6 +505,7 @@
   <script>
     document.addEventListener("DOMContentLoaded", function() {
       const clock = document.getElementById("clock");
+      const dayTicksContainer = document.getElementById("dayTicksContainer");
       const seasonOverlay = document.getElementById("seasonOverlay");
       const pointer = document.getElementById("pointer");
       const hand = document.getElementById("hand");
@@ -497,7 +516,7 @@
       const toggleMoreOptionsButton = document.getElementById("toggleMoreOptions");
       const addCustomEventButton = document.getElementById("addCustomEvent");
       let moreOptionsVisible = false;
-      const centerX = 150, centerY = 150;
+      const centerX = 160, centerY = 160; // Adjusted for container size (320px / 2)
       const triggerRadius = 15;
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const averageTemps = [30, 35, 45, 55, 65, 75, 80, 78, 70, 60, 50, 35];
@@ -532,15 +551,15 @@
         const angle = index * 30 + 30;
         const radian = (angle - 90) * Math.PI / 180;
         const radiusMarker = 130;
-        marker.style.left = (centerX + radiusMarker * Math.cos(radian) - 20) + "px";
-        marker.style.top = (centerY + radiusMarker * Math.sin(radian) - 10) + "px";
+        marker.style.left = (centerX - 10 + radiusMarker * Math.cos(radian) - 20) + "px"; // Offset by 10px for border
+        marker.style.top = (centerY - 10 + radiusMarker * Math.sin(radian) - 10) + "px";
         clock.appendChild(marker);
 
         const tick = document.createElement("div");
         tick.className = "tick";
         const radiusTick = 150;
-        const tickX = centerX + radiusTick * Math.cos(radian);
-        const tickY = centerY + radiusTick * Math.sin(radian);
+        const tickX = centerX - 10 + radiusTick * Math.cos(radian); // Offset by 10px for border
+        const tickY = centerY - 10 + radiusTick * Math.sin(radian);
         tick.style.left = (tickX - 1) + "px";
         tick.style.top = tickY + "px";
         tick.style.transformOrigin = "center 3px";
@@ -559,8 +578,8 @@
         const radiusTemp = 98;
         const tempAngle = index * 30 + 45;
         const tempRadian = (tempAngle - 90) * Math.PI / 180;
-        temp.style.left = (centerX + radiusTemp * Math.cos(tempRadian)) + "px";
-        temp.style.top = (centerY + radiusTemp * Math.sin(tempRadian)) + "px";
+        temp.style.left = (centerX - 10 + radiusTemp * Math.cos(tempRadian)) + "px"; // Offset by 10px for border
+        temp.style.top = (centerY - 10 + radiusTemp * Math.sin(tempRadian)) + "px";
         temp.style.transform = "translate(-50%, -50%)";
         temperatureElements.push(temp);
         clock.appendChild(temp);
@@ -594,17 +613,17 @@
           dayCounter++;
         }
       });
-      clock.appendChild(fragment);
+      dayTicksContainer.appendChild(fragment);
 
       // Position each tick from the center
-      const ticks = clock.querySelectorAll('.day-tick');
+      const ticks = dayTicksContainer.querySelectorAll('.day-tick');
       ticks.forEach(tick => {
         const computedStyle = window.getComputedStyle(tick);
         const visibleHeight = parseFloat(computedStyle.height); // e.g., 16px for even
-        const totalHeight = 160 + visibleHeight; // 160 to border + visible height
+        const totalHeight = 170 + visibleHeight; // Adjusted for border (160 + 10)
         tick.style.height = totalHeight + 'px';
-        tick.style.left = '149.5px'; // Center for 1px width (150 - 0.5)
-        tick.style.top = (150 - totalHeight) + 'px'; // Bottom at y=150
+        tick.style.left = '159.5px'; // Center for 1px width (160 - 0.5)
+        tick.style.top = (160 - totalHeight) + 'px'; // Bottom at y=160
         tick.style.transformOrigin = 'bottom center';
         const angle = parseFloat(tick.dataset.angle);
         tick.style.transform = `rotate(${angle}deg)`;
@@ -984,8 +1003,8 @@
 
         if (visibilityMap["previewAllDates"]) {
           const clockRect = clock.getBoundingClientRect();
-          const x = mouseX - clockRect.left - centerX;
-          const y = mouseY - clockRect.top - centerY;
+          const x = mouseX - clockRect.left - (centerX - 10); // Adjust for border
+          const y = mouseY - clockRect.top - (centerY - 10);
           const distance = Math.sqrt(x * x + y * y);
           if (distance <= 185) {
             let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90;
@@ -1137,8 +1156,8 @@
           clock.appendChild(label);
           const labelRect = label.getBoundingClientRect();
           const margin = 15;
-          const dx = dotX - centerX;
-          const dy = dotY - centerY;
+          const dx = dotX - (centerX - 10); // Adjust for border
+          const dy = dotY - (centerY - 10);
           const angle = Math.atan2(dy, dx);
           let labelX, labelY;
           const horizontalOffset = labelRect.width + margin;
@@ -1250,8 +1269,8 @@
         const angle = (data.month - 1 + fraction + 1) * 30;
         const radian = (angle - 90) * Math.PI / 180;
         const baseRadius = 160;
-        const markerCenterX = centerX + baseRadius * Math.cos(radian);
-        const markerCenterY = centerY + baseRadius * Math.sin(radian);
+        const markerCenterX = centerX - 10 + baseRadius * Math.cos(radian); // Adjust for border
+        const markerCenterY = centerY - 10 + baseRadius * Math.sin(radian);
         const container = document.createElement("div");
         container.className = `${type}-marker marker`;
         container.style.left = (markerCenterX - 10) + "px";
@@ -1283,10 +1302,10 @@
         const radius = 160;
         const startRadian = (startAngle - 90) * Math.PI / 180;
         const endRadian = (endAngle - 90) * Math.PI / 180;
-        const startX = centerX + radius * Math.cos(startRadian);
-        const startY = centerY + radius * Math.sin(startRadian);
-        const endX = centerX + radius * Math.cos(endRadian);
-        const endY = centerY + radius * Math.sin(endRadian);
+        const startX = (centerX - 10) + radius * Math.cos(startRadian); // Adjust for border
+        const startY = (centerY - 10) + radius * Math.sin(startRadian);
+        const endX = (centerX - 10) + radius * Math.cos(endRadian);
+        const endY = (centerY - 10) + radius * Math.sin(endRadian);
         const largeArcFlag = Math.abs(endAngle - startAngle) > 180 ? 1 : 0;
         const sweepFlag = endAngle >= startAngle ? 1 : 0;
         const pathD = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}`;
@@ -1358,8 +1377,8 @@
             const angle = (dot.dataset.month - 1 + (dot.dataset.day - 1) / new Date(new Date().getFullYear(), dot.dataset.month, 0).getDate() + 1) * 30;
             const radian = (angle - 90) * Math.PI / 180;
             const radius = 160 + index * 5;
-            const markerCenterX = centerX + radius * Math.cos(radian);
-            const markerCenterY = centerY + radius * Math.sin(radian);
+            const markerCenterX = (centerX - 10) + radius * Math.cos(radian); // Adjust for border
+            const markerCenterY = (centerY - 10) + radius * Math.sin(radian);
             dot.style.left = (markerCenterX - 10) + "px";
             dot.style.top = (markerCenterY - 10) + "px";
           });
