@@ -435,11 +435,12 @@
       const holidayDisplay = document.getElementById("holidayDisplay");
       const moreOptionsColumn = document.querySelector(".controls-column.more-options");
       const toggleMoreOptionsButton = document.getElementById("toggleMoreOptions");
+      const addCustomEventButton = document.getElementById("addCustomEvent");
       let moreOptionsVisible = false;
       const centerX = 150, centerY = 150;
       const triggerRadius = 15;
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const averageTemps = [30, 35, 45, 55, 65, 75, 80, 78, 70, 60, 50, 35];
+      const averageTemps = [30, 35, 45, 55, 65, 75, 80, 78, 70, 60, 50, 35]; // Monthly averages
       const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const temperatureElements = [];
       const events = new Map();
@@ -884,7 +885,7 @@
           dots.forEach((dot, index) => {
             const angle = (dot.dataset.month - 1 + (dot.dataset.day - 1) / new Date(new Date().getFullYear(), dot.dataset.month, 0).getDate() + 1) * 30;
             const radian = (angle - 90) * Math.PI / 180;
-            const radius = 160 + index * 5; // Increased to 5px increments
+            const radius = 160 + index * 5; // 5px increments
             const markerCenterX = centerX + radius * Math.cos(radian);
             const markerCenterY = centerY + radius * Math.sin(radian);
             dot.style.left = (markerCenterX - 10) + "px";
@@ -1167,7 +1168,7 @@
         if (!this.checked) datePreview.classList.remove("visible");
       });
 
-      document.getElementById("addCustomEvent").addEventListener("click", () => {
+      addCustomEventButton.addEventListener("click", () => {
         const name = prompt("Enter event name:");
         const date = prompt("Enter date (MM-DD):");
         if (name && date) {
@@ -1195,7 +1196,7 @@
       });
 
       document.getElementById("toggleSeasons").addEventListener("change", function() {
-        seasonOverlay.style.opacity = this.checked ? 1 : 0;
+        seasonOverlay.style.opacity = this.checked ? "1" : "0";
       });
 
       document.getElementById("toggleTemperatures").addEventListener("change", function() {
@@ -1216,14 +1217,14 @@
 
       // Hover on hand to show current date
       hand.addEventListener("mousemove", function(e) {
-        e.stopPropagation(); // Prevent clock mousemove from overriding
+        e.stopPropagation();
         const now = new Date();
         holidayDisplay.innerHTML = "Current Date<br><span class='event-date'>" + formatDate(now.getMonth() + 1, now.getDate()) + "</span>";
-        holidayDisplay.style.opacity = 1;
+        holidayDisplay.style.opacity = "1";
       });
 
       hand.addEventListener("mouseleave", function() {
-        holidayDisplay.style.opacity = 0;
+        holidayDisplay.style.opacity = "0";
       });
 
       clock.addEventListener("mousemove", function(e) {
@@ -1236,22 +1237,19 @@
           if (event.arc) event.arc.setAttribute('stroke-width', '2');
         });
 
-        // Preview All Dates logic aligned with clock's system
         if (visibilityMap["previewAllDates"]) {
           const clockRect = clock.getBoundingClientRect();
           const x = mouseX - clockRect.left - centerX;
           const y = mouseY - clockRect.top - centerY;
           const distance = Math.sqrt(x * x + y * y);
           if (distance <= 185) {
-            let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90; // 0° at top
+            let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90;
             if (angleDeg < 0) angleDeg += 360;
-            // Adjust to match clock: December 1st at 0°, January 1st at 30°, etc.
             const totalDegrees = 360;
-            const degreesPerMonth = totalDegrees / 12;
-            let monthFraction = angleDeg / totalDegrees; // 0 to 1 over 360°
-            let monthProgress = monthFraction * 12; // 0 to 12 months
-            let monthIndex = Math.floor(monthProgress); // 0-11
-            let month = (monthIndex + 11) % 12 + 1; // Shift so 0° = Dec (12), 30° = Jan (1)
+            const monthFraction = angleDeg / totalDegrees;
+            let monthProgress = monthFraction * 12;
+            let monthIndex = Math.floor(monthProgress);
+            let month = (monthIndex + 11) % 12 + 1; // 0° = Dec, 30° = Jan
             const totalDays = new Date(new Date().getFullYear(), month, 0).getDate();
             const dayFraction = (monthProgress - monthIndex) * totalDays;
             const day = Math.floor(dayFraction) + 1;
@@ -1281,9 +1279,9 @@
             activeMarker.classList.add("active");
             holidayDisplay.innerHTML = activeMarker.dataset.name + "<br><span class='event-date'>" + activeMarker.dataset.date + "</span>";
           }
-          holidayDisplay.style.opacity = 1;
+          holidayDisplay.style.opacity = "1";
         } else if (!holidayDisplay.style.opacity || holidayDisplay.style.opacity === "0") {
-          holidayDisplay.style.opacity = 0;
+          holidayDisplay.style.opacity = "0";
         }
       });
 
@@ -1303,13 +1301,13 @@
         events.forEach(event => {
           if (event.arc) event.arc.setAttribute('stroke-width', '2');
         });
-        holidayDisplay.style.opacity = 0;
+        holidayDisplay.style.opacity = "0";
         datePreview.classList.remove("visible");
       });
 
       function updateHands() {
         const now = new Date();
-        const monthIndex = now.getMonth() + 1;
+        const monthIndex = now.getMonth() + 1; // 1-12
         const totalDays = new Date(now.getFullYear(), monthIndex, 0).getDate();
         const secondsInDay = 86400;
         const secondsPassedToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
@@ -1317,17 +1315,17 @@
         const fractionMonth = (now.getDate() - 1 + fractionToday) / totalDays;
         const monthAngle = (monthIndex - 1 + fractionMonth + 1) * 30;
 
-        hand.style.transform = "rotate(" + monthAngle + "deg)";
+        hand.style.transform = `rotate(${monthAngle}deg)`;
 
         const hours = now.getHours() + now.getMinutes() / 60;
         const hourAngle = (hours % 12) * 30;
-        document.getElementById("hourHand").style.transform = "rotate(" + hourAngle + "deg)";
+        document.getElementById("hourHand").style.transform = `rotate(${hourAngle}deg)`;
         const minutes = now.getMinutes() + now.getSeconds() / 60;
         const minuteAngle = minutes * 6;
-        document.getElementById("minuteHand").style.transform = "rotate(" + minuteAngle + "deg)";
+        document.getElementById("minuteHand").style.transform = `rotate(${minuteAngle}deg)`;
         const seconds = now.getSeconds();
         const secondAngle = seconds * 6;
-        document.getElementById("secondHand").style.transform = "rotate(" + secondAngle + "deg)";
+        document.getElementById("secondHand").style.transform = `rotate(${secondAngle}deg)`;
       }
 
       updateHands();
