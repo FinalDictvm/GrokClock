@@ -27,6 +27,9 @@
     #holidayDisplay .event-date {
       font-size: 0.6em; /* Smaller date text */
     }
+    #holidayDisplay .event-date .to {
+      color: gray; /* Gray 'to' between date ranges */
+    }
 
     /* Clock container: circular with border, shadow, and background */
     .clock {
@@ -611,7 +614,7 @@
         updateAllDotPositions();
       }
 
-      /* Toggles label on/off with quadrant-based positioning */
+      /* Toggles label on/off with quadrant-based positioning, adds "End" for end markers */
       function toggleMarkerLabel(marker) {
         if (marker.dataset.labelVisible === "true") {
           hideLabel(marker);
@@ -629,7 +632,18 @@
           const dotY = markerTop + dotTop + (dotHeight / 2);
           const label = document.createElement("div");
           label.className = "event-label";
-          label.textContent = marker.dataset.name;
+          
+          // Determine if this is an end marker and adjust label text
+          const eventId = marker.dataset.eventId;
+          let labelText = marker.dataset.name;
+          if (eventId && events.has(eventId)) {
+            const event = events.get(eventId);
+            if (event.endMarker === marker) {
+              labelText = "End " + labelText; // Prepend "End" for end marker
+            }
+          }
+          label.textContent = labelText;
+          
           label.style.color = "white";
           clock.appendChild(label);
           const labelRect = label.getBoundingClientRect();
@@ -775,9 +789,10 @@
         const startY = centerY + radius * Math.sin(startRadian);
         const endX = centerX + radius * Math.cos(endRadian);
         const endY = centerY + radius * Math.sin(endRadian);
-        const delta = (endAngle - startAngle + 360) % 360;
+        const delta = Math.abs(endAngle - startAngle) > 180 ? (360 - Math.abs(endAngle - startAngle)) : Math.abs(endAngle - startAngle);
         const largeArcFlag = delta > 180 ? 1 : 0;
-        const pathD = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
+        const sweepFlag = endAngle > startAngle ? 1 : 0; // Clockwise if end > start
+        const pathD = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}`;
         path.setAttribute('d', pathD);
         path.setAttribute('stroke', getColorForType(type));
         path.setAttribute('stroke-width', '2');
@@ -1200,7 +1215,7 @@
               event.arc.setAttribute('stroke-width', '3');
               const startDate = formatDate(event.startMarker.dataset.month, event.startMarker.dataset.day);
               const endDate = formatDate(event.endMarker.dataset.month, event.endMarker.dataset.day);
-              display.innerHTML = event.name + "<br><span class='event-date'>" + startDate + " to " + endDate + "</span>";
+              display.innerHTML = event.name + "<br><span class='event-date'>" + startDate + " <span class='to'>to</span> " + endDate + "</span>";
             } else {
               display.innerHTML = event.name + "<br><span class='event-date'>" + event.startMarker.dataset.date + "</span>";
             }
