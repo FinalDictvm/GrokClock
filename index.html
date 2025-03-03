@@ -105,7 +105,7 @@
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
     }
     .pointer {
-      width: 1px; /* Changed to 1px */
+      width: 1px;
       height: 10px; /* From 150px (border) to 160px (dots) */
       background: white;
       position: absolute;
@@ -329,15 +329,15 @@
     .date-preview {
       position: absolute;
       left: 50%;
-      top: 55%; /* Below center dot */
+      top: 58%; /* Moved 10px lower */
       transform: translateX(-50%);
-      font-size: 0.7em;
+      font-size: 0.9em; /* Increased from 0.7em */
       color: white;
       opacity: 0;
       transition: opacity 0.2s ease-in-out;
       z-index: 3;
       pointer-events: none;
-      text-shadow: 0 0 8px rgba(0,0,0,0.9); /* Darker shadow */
+      text-shadow: 0 0 10px rgba(0,0,0,1); /* Darker shadow */
     }
     .date-preview.visible {
       opacity: 1;
@@ -701,7 +701,7 @@
           });
           document.addEventListener("mousemove", function(e) {
             if (!isDragging) return;
-            const clockRect = clock.getBoundingClockRect();
+            const clockRect = clock.getBoundingClientRect();
             const newX = e.clientX - offsetX - clockRect.left;
             const newY = e.clientY - offsetY - clockRect.top;
             label.style.left = newX + "px";
@@ -1220,16 +1220,27 @@
           const x = mouseX - clockRect.left - centerX;
           const y = mouseY - clockRect.top - centerY;
           const distance = Math.sqrt(x * x + y * y);
-          if (distance <= 150) { // Within clock radius
+          if (distance <= 170) { // Extended to 170px
             let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90;
             if (angleDeg < 0) angleDeg += 360;
+            // Adjust angle to align January 1st at 0 degrees (top)
+            angleDeg = (angleDeg + 270) % 360; // Shift by -90 degrees (270 = 360 - 90)
             const totalAngle = 360;
-            const anglePerMonth = totalAngle / 12;
-            const monthIndex = Math.floor(angleDeg / anglePerMonth);
-            const month = (monthIndex % 12) + 1;
-            const totalDays = new Date(new Date().getFullYear(), month, 0).getDate();
-            const monthFraction = (angleDeg % anglePerMonth) / anglePerMonth;
-            const day = Math.floor(monthFraction * totalDays) + 1;
+            const daysInYear = 365; // Simplified, ignoring leap years for preview
+            const anglePerDay = totalAngle / daysInYear;
+            const totalDaysPassed = Math.floor(angleDeg / anglePerDay);
+            let daysRemaining = totalDaysPassed;
+            let month = 1;
+            let year = new Date().getFullYear();
+            while (daysRemaining >= new Date(year, month, 0).getDate()) {
+              daysRemaining -= new Date(year, month, 0).getDate();
+              month++;
+              if (month > 12) {
+                month = 1;
+                year++;
+              }
+            }
+            const day = daysRemaining + 1; // +1 because days start at 1
             datePreview.textContent = formatDate(month, day);
             datePreview.classList.add("visible");
           } else {
