@@ -91,6 +91,15 @@
       z-index: 2;
       box-shadow: 0 1px 2px rgba(0,0,0,0.4);
     }
+    .day-tick {
+      position: absolute;
+      width: 1px;
+      height: 5px;
+      background: white;
+      transform-origin: center bottom;
+      z-index: 2;
+      display: none;
+    }
     .hand {
       width: 4px;
       height: 120px;
@@ -283,6 +292,7 @@
     #toggleSeasons:checked + .checkbox-custom::after,
     #toggleTemperatures:checked + .checkbox-custom::after,
     #toggleClockHands:checked + .checkbox-custom::after,
+    #toggleDayTicks:checked + .checkbox-custom::after,
     #togglePointer:checked + .checkbox-custom::after,
     #togglePreviewAllDates:checked + .checkbox-custom::after { color: white; }
     #toggleCustomEventsLabel {
@@ -419,6 +429,11 @@
         <span class="checkbox-custom"></span>
       </label>
       <label class="checkbox-label">
+        Day Ticks
+        <input type="checkbox" id="toggleDayTicks">
+        <span class="checkbox-custom"></span>
+      </label>
+      <label class="checkbox-label">
         Pointer
         <input type="checkbox" id="togglePointer" checked>
         <span class="checkbox-custom"></span>
@@ -448,6 +463,7 @@
       const averageTemps = [30, 35, 45, 55, 65, 75, 80, 78, 70, 60, 50, 35];
       const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const temperatureElements = [];
+      const dayTickElements = [];
       const events = new Map();
       let eventCounter = 0;
 
@@ -459,11 +475,13 @@
         "life": false,
         "custom": false,
         "pointer": true,
+        "dayTicks": false,
         "previewAllDates": false
       };
 
       pointer.style.display = visibilityMap["pointer"] ? "block" : "none";
 
+      // Clock setup
       months.forEach((month, index) => {
         const marker = document.createElement("div");
         marker.className = "month";
@@ -505,6 +523,29 @@
         temp.style.transform = "translate(-50%, -50%)";
         temperatureElements.push(temp);
         clock.appendChild(temp);
+      });
+
+      // Day Ticks setup (365 ticks for 2025, non-leap year)
+      const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+      let dayCounter = 0;
+      daysInMonth.forEach((days, month) => {
+        for (let day = 1; day <= days; day++) {
+          const totalDays = daysInMonth[month];
+          const fraction = (day - 1) / totalDays;
+          const angle = (month + fraction + 1) * 30;
+          const radian = (angle - 90) * Math.PI / 180;
+          const radius = 160;
+          const tickX = centerX + radius * Math.cos(radian);
+          const tickY = centerY + radius * Math.sin(radian);
+          const tick = document.createElement("div");
+          tick.className = "day-tick";
+          tick.style.left = (tickX - 0.5) + "px"; // Center 1px width
+          tick.style.top = (tickY - 5) + "px"; // 5px height from edge
+          tick.style.transform = `rotate(${angle}deg)`;
+          dayTickElements.push(tick);
+          clock.appendChild(tick);
+          dayCounter++;
+        }
       });
 
       function getDaySuffix(day) {
@@ -749,6 +790,16 @@
         });
       }
 
+      const toggleDayTicks = document.getElementById("toggleDayTicks");
+      if (toggleDayTicks) {
+        toggleDayTicks.addEventListener("change", function() {
+          visibilityMap["dayTicks"] = this.checked;
+          dayTickElements.forEach(tick => {
+            tick.style.display = this.checked ? "block" : "none";
+          });
+        });
+      }
+
       const togglePreviewAllDates = document.getElementById("togglePreviewAllDates");
       if (togglePreviewAllDates) {
         togglePreviewAllDates.addEventListener("change", function() {
@@ -849,13 +900,26 @@
           if (distance <= 185) {
             let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90;
             if (angleDeg < 0) angleDeg += 360;
-            const totalDegrees = 360;
-            const anglePerMonth = totalDegrees / 12;
-            const monthIndex = Math.floor(angleDeg / anglePerMonth);
-            const month = (monthIndex + 11) % 12 + 1; // 0° = Dec, 30° = Jan
-            const totalDays = new Date(new Date().getFullYear(), month, 0).getDate();
-            const fractionWithinMonth = (angleDeg - (monthIndex * anglePerMonth)) / anglePerMonth;
-            const day = Math.floor(fractionWithinMonth * totalDays) + 1;
+            let month = 1;
+            let day = 1;
+            let cumulativeAngle = 0;
+            for (let m = 0; m < 12; m++) {
+              const totalDays = daysInMonth[m];
+              const anglePerDay = 30 / totalDays;
+              const nextCumulativeAngle = cumulativeAngle + 30;
+              if (angleDeg >= cumulativeAngle && angleDeg < nextCumulativeAngle) {
+                month = m + 1;
+                const dayFraction = (angleDeg - cumulativeAngle) / anglePerDay;
+                day = Math.floor(dayFraction) + 1;
+                break;
+              }
+              cumulativeAngle = nextCumulativeAngle;
+            }
+            if (angleDeg >= 360 - 30) { // Handle December wrap-around
+              month = 12;
+              const dayFraction = (angleDeg - (360 - 30)) / (30 / daysInMonth[11]);
+              day = Math.floor(dayFraction) + 1;
+            }
             datePreview.textContent = formatDate(month, day);
             datePreview.classList.add("visible");
           } else {
