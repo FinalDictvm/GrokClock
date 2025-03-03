@@ -98,7 +98,7 @@
       height: 176px; /* Default even length */
       background: #ADD8E6; /* Light blue */
       opacity: 0.8;
-      transform-origin: center 150px; /* Center of clock (half of 300px) */
+      transform-origin: center 150px; /* Center of clock */
       left: 50%;
       top: 50%;
       z-index: -1; /* Below clock */
@@ -581,19 +581,22 @@
           const angle = (month + fraction + 1) * 30;
           const tick = document.createElement("div");
           tick.className = "day-tick";
-          if (day === 1) {
-            tick.classList.add("first");
-          } else if (day === days) {
-            tick.classList.add("last");
+          let translateY = 150; // Base translation for even ticks (176px height)
+          if (day === 1 || day === days) {
+            tick.classList.add(day === 1 ? "first" : "last");
+            translateY = 150; // 190px height
           } else if (day % 2 === 0) {
             tick.classList.add("even");
+            translateY = 150; // 176px height
           } else {
             tick.classList.add("odd");
+            translateY = 150; // 180px height
           }
           if (day === 15 && day !== 1 && day !== days) {
             tick.classList.add("fifteenth");
+            translateY = 150; // 187px height
           }
-          tick.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(-${150}px)`; // Start at center, extend outward
+          tick.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(${translateY}px)`;
           dayTickElements.push(tick);
           clock.appendChild(tick);
           dayCounter++;
