@@ -105,15 +105,15 @@
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
     }
     .pointer {
-      width: 1px;
-      height: 10px; /* From border (150px) to dots (160px) */
+      width: 2px; /* Slightly thicker for visibility */
+      height: 10px; /* From 150px (border) to 160px (dots) */
       background: white;
       position: absolute;
-      left: 50%;
-      top: 120px; /* Start at hand’s tip */
-      transform: translateX(-50%);
+      left: calc(50% - 1px); /* Center within hand */
+      top: -40px; /* Position from hand's tip (120px) to reach 150px from center */
+      transform-origin: bottom center;
       z-index: 2;
-      display: block; /* Starts visible */
+      display: block; /* Controlled by JS */
     }
     .hour-hand {
       width: 4px;
@@ -414,6 +414,9 @@
         "custom": false,
         "pointer": true
       };
+
+      // Initialize pointer visibility on load
+      pointer.style.display = visibilityMap["pointer"] ? "block" : "none";
 
       function getDaySuffix(day) {
         if (day >= 11 && day <= 13) return "th";
