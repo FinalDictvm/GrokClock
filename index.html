@@ -110,15 +110,16 @@
       position: absolute;
       width: 1px;
       background: #ADD8E6;
-      opacity: 0;
+      opacity: 0.8; /* Fixed opacity, no fade */
       z-index: 0;
-      transition: opacity 0.025s ease-in-out; /* 4x faster: was 0.1s */
+      transform: scaleY(0); /* Start shrunk */
+      transition: transform 0.025s ease-in-out; /* 4x faster growth */
     }
     .day-tick.first {
       background: #00FF00;
       height: 20px;
       width: 2px;
-      opacity: 0;
+      opacity: 1;
     }
     .day-tick.even {
       height: 4px;
@@ -126,7 +127,7 @@
     .day-tick.odd {
       background: white;
       height: 7px;
-      opacity: 0;
+      opacity: 1;
     }
     .day-tick.fifteenth {
       height: 16px;
@@ -134,7 +135,7 @@
     .day-tick.last-odd {
       background: white;
       height: 16px;
-      opacity: 0;
+      opacity: 1;
     }
     .hand {
       width: 4px;
@@ -629,7 +630,7 @@
         tick.style.top = (160 - totalHeight) + 'px';
         tick.style.transformOrigin = 'bottom center';
         const angle = parseFloat(tick.dataset.angle);
-        tick.style.transform = `rotate(${angle}deg)`;
+        tick.style.transform = `rotate(${angle}deg) scaleY(0)`; // Initial state: shrunk
         dayTickElements.push(tick);
       });
 
@@ -900,14 +901,16 @@
           if (this.checked) {
             dayTickElements.forEach((tick, index) => {
               setTimeout(() => {
-                tick.style.opacity = tick.classList.contains("first") || tick.classList.contains("last-odd") || tick.classList.contains("odd") ? "1" : "0.8";
-              }, index * 1.25); // 4x faster: was 5ms
+                const angle = parseFloat(tick.dataset.angle);
+                tick.style.transform = `rotate(${angle}deg) scaleY(1)`; // Grow to full size
+              }, index * 1.25); // 4x faster: 456ms total sequence
             });
           } else {
             dayTickElements.forEach((tick, index) => {
               setTimeout(() => {
-                tick.style.opacity = "0";
-              }, index * 1.25); // 4x faster: was 5ms
+                const angle = parseFloat(tick.dataset.angle);
+                tick.style.transform = `rotate(${angle}deg) scaleY(0)`; // Shrink back
+              }, index * 1.25); // 4x faster: 456ms total sequence
             });
           }
         });
