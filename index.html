@@ -117,7 +117,7 @@
     .day-tick.first {
       background: #00FF00; /* Bright green */
       height: 20px;
-      width: 2px;
+      width: 2px; /* Changed from 1px */
       opacity: 1;
     }
     .day-tick.even {
@@ -133,7 +133,7 @@
     }
     .day-tick.last-odd {
       background: white;
-      height: 16px;
+      height: 16px; /* New class for odd last days */
       opacity: 1;
     }
     .hand {
@@ -464,11 +464,6 @@
         <input type="checkbox" id="toggleCustomEvents">
         <span class="checkbox-custom"></span>
       </label>
-      <label class="checkbox-label">
-        Day Ticks
-        <input type="checkbox" id="toggleDayTicks">
-        <span class="checkbox-custom"></span>
-      </label>
     </div>
     <div class="controls-column more-options">
       <label class="checkbox-label">
@@ -484,6 +479,11 @@
       <label class="checkbox-label">
         Clock Hands
         <input type="checkbox" id="toggleClockHands">
+        <span class="checkbox-custom"></span>
+      </label>
+      <label class="checkbox-label">
+        Day Ticks
+        <input type="checkbox" id="toggleDayTicks">
         <span class="checkbox-custom"></span>
       </label>
       <label class="checkbox-label">
@@ -517,7 +517,7 @@
       const toggleMoreOptionsButton = document.getElementById("toggleMoreOptions");
       const addCustomEventButton = document.getElementById("addCustomEvent");
       let moreOptionsVisible = false;
-idental      const centerX = 160, centerY = 160; // Adjusted for container size (320px / 2)
+      const centerX = 160, centerY = 160; // Adjusted for container size (320px / 2)
       const triggerRadius = 15;
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const averageTemps = [30, 35, 45, 55, 65, 75, 80, 78, 70, 60, 50, 35];
@@ -600,7 +600,7 @@ idental      const centerX = 160, centerY = 160; // Adjusted for container size 
           if (day === 1) {
             tick.classList.add("first");
           } else if (day === days && day % 2 !== 0) {
-            tick.classList.add("last-odd");
+            tick.classList.add("last-odd"); // New class for odd last days
           } else if (day % 2 === 0) {
             tick.classList.add("even");
           } else {
@@ -610,8 +610,6 @@ idental      const centerX = 160, centerY = 160; // Adjusted for container size 
             tick.classList.add("fifteenth");
           }
           tick.dataset.angle = angle;
-          tick.dataset.month = month + 1; // Store month (1-12)
-          tick.dataset.day = day; // Store day (1-31)
           fragment.appendChild(tick);
           dayCounter++;
         }
@@ -995,81 +993,6 @@ idental      const centerX = 160, centerY = 160; // Adjusted for container size 
         holidayDisplay.style.opacity = "0";
       });
 
-      function isPointOnTickOuterSegment(mouseX, mouseY, tick) {
-        if (getComputedStyle(tick).display === "none") return false;
-
-        const angleDeg = parseFloat(tick.dataset.angle);
-        const radian = (angleDeg - 90) * Math.PI / 180;
-        const width = parseFloat(window.getComputedStyle(tick).width);
-        const visibleHeight = parseFloat(window.getComputedStyle(tick).height);
-        const totalHeight = 170 + visibleHeight; // From positioning logic
-
-        // Tick's base (center of rotation) in container coords
-        const baseX = centerX - width / 2; // 159.5px for 1px, 159px for 2px
-        const baseY = 160;
-
-        // Convert to clock-relative coords (adjust for 10px border)
-        const clockBaseX = baseX - 10;
-        const clockBaseY = baseY - 10;
-
-        // Tick's endpoint (before rotation)
-        const endYUnrotated = baseY - totalHeight;
-
-        // Rotate around base to get actual endpoints
-        const cos = Math.cos(radian);
-        const sin = Math.sin(radian);
-        const startX = clockBaseX + (baseX - baseX) * cos - (baseY - baseY) * sin + 10; // Base point
-        const startY = clockBaseY + (baseX - baseX) * sin + (baseY - baseY) * cos + 10;
-        const endXUnrotated = baseX;
-        const endX = clockBaseX + (endXUnrotated - baseX) * cos - (endYUnrotated - baseY) * sin + 10;
-        const endY = clockBaseY + (endXUnrotated - baseX) * sin + (endYUnrotated - baseY) * cos + 10;
-
-        // Distance from center to base and end
-        const distStart = Math.sqrt(Math.pow(startX - centerX, 2) + Math.pow(startY - centerY, 2));
-        const distEnd = Math.sqrt(Math.pow(endX - centerX, 2) + Math.pow(endY - centerY, 2));
-
-        // Segment from 150px radius to end
-        const radius = 150;
-        let segmentStartX, segmentStartY;
-        if (distStart < radius && distEnd > radius) {
-          const t = (radius - distStart) / (distEnd - distStart);
-          segmentStartX = startX + t * (endX - startX);
-          segmentStartY = startY + t * (endY - startY);
-        } else if (distStart >= radius) {
-          segmentStartX = startX;
-          segmentStartY = startY;
-        } else {
-          return false; // Entire tick inside 150px
-        }
-
-        // Define the line segment from intersection (150px) to end
-        const segmentEndX = endX;
-        const segmentEndY = endY;
-
-        // Check if mouse is within the tick's width along the segment
-        const dx = segmentEndX - segmentStartX;
-        const dy = segmentEndY - segmentStartY;
-        const length = Math.sqrt(dx * dx + dy * dy);
-        const unitX = dx / length;
-        const unitY = dy / length;
-
-        // Project mouse point onto the line
-        const vecX = mouseX - segmentStartX;
-        const vecY = mouseY - segmentStartY;
-        const projection = vecX * unitX + vecY * unitY;
-
-        if (projection < 0 || projection > length) return false; // Beyond segment ends
-
-        // Perpendicular distance from mouse to line
-        const perpX = vecX - projection * unitX;
-        const perpY = vecY - projection * unitY;
-        const distance = Math.sqrt(perpX * perpX + perpY * perpY);
-
-        // Check if within half-width of tick (plus a small buffer for usability)
-        const halfWidth = width / 2 + 1; // 0.5px for 1px ticks, 1px for 2px ticks, +1px buffer
-        return distance <= halfWidth;
-      }
-
       clock.addEventListener("mousemove", function(e) {
         const mouseX = e.clientX;
         const mouseY = e.clientY;
@@ -1080,24 +1003,24 @@ idental      const centerX = 160, centerY = 160; // Adjusted for container size 
           if (event.arc) event.arc.setAttribute('stroke-width', '2');
         });
 
-        if (visibilityMap["previewAllDates"] && visibilityMap["dayTicks"]) {
-          let previewTick = null;
-          for (const tick of dayTickElements) {
-            if (isPointOnTickOuterSegment(mouseX, mouseY, tick)) {
-              previewTick = tick;
-              break;
-            }
-          }
-          if (previewTick) {
-            const month = parseInt(previewTick.dataset.month);
-            const day = parseInt(previewTick.dataset.day);
+        if (visibilityMap["previewAllDates"]) {
+          const clockRect = clock.getBoundingClientRect();
+          const x = mouseX - clockRect.left - (centerX - 10); // Adjust for border
+          const y = mouseY - clockRect.top - (centerY - 10);
+          const distance = Math.sqrt(x * x + y * y);
+          if (distance <= 185) {
+            let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90;
+            if (angleDeg < 0) angleDeg += 360;
+            const monthIndex = Math.floor(angleDeg / 30);
+            const month = (monthIndex + 11) % 12 + 1; // 0° = Dec, 30° = Jan
+            const totalDays = daysInMonth[month - 1];
+            const fractionWithinMonth = (angleDeg - (monthIndex * 30)) / 30;
+            const day = Math.floor(fractionWithinMonth * totalDays) + 1;
             datePreview.textContent = formatDate(month, day);
             datePreview.classList.add("visible");
           } else {
             datePreview.classList.remove("visible");
           }
-        } else {
-          datePreview.classList.remove("visible");
         }
 
         if (activeMarker) {
