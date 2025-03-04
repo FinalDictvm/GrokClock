@@ -116,19 +116,25 @@
     }
     .day-tick.first {
       background: #00FF00; /* Bright green */
-      height: 20px; /* Changed from 30px */
+      height: 20px;
+      width: 2px; /* Changed from 1px */
       opacity: 1;
     }
     .day-tick.even {
-      height: 4px; /* Changed from 16px */
+      height: 4px;
     }
     .day-tick.odd {
       background: white;
-      height: 7px; /* Changed from 20px */
+      height: 7px;
       opacity: 1;
     }
     .day-tick.fifteenth {
-      height: 16px; /* Changed from 27px */
+      height: 16px;
+    }
+    .day-tick.last-odd {
+      background: white;
+      height: 16px; /* New class for odd last days */
+      opacity: 1;
     }
     .hand {
       width: 4px;
@@ -593,12 +599,14 @@
           tick.className = "day-tick";
           if (day === 1) {
             tick.classList.add("first");
+          } else if (day === days && day % 2 !== 0) {
+            tick.classList.add("last-odd"); // New class for odd last days
           } else if (day % 2 === 0) {
             tick.classList.add("even");
           } else {
             tick.classList.add("odd");
           }
-          if (day === 15 && day !== 1) { // No need to check against last since it's removed
+          if (day === 15 && day !== 1) {
             tick.classList.add("fifteenth");
           }
           tick.dataset.angle = angle;
@@ -613,9 +621,10 @@
       ticks.forEach(tick => {
         const computedStyle = window.getComputedStyle(tick);
         const visibleHeight = parseFloat(computedStyle.height); // e.g., 4px for even
+        const width = parseFloat(computedStyle.width); // 2px for .first, 1px for others
         const totalHeight = 170 + visibleHeight; // Adjusted for border (160 + 10)
         tick.style.height = totalHeight + 'px';
-        tick.style.left = '159.5px'; // Center for 1px width (160 - 0.5)
+        tick.style.left = (160 - width / 2) + 'px'; // Center based on width (159.5px for 1px, 159px for 2px)
         tick.style.top = (160 - totalHeight) + 'px'; // Bottom at y=160
         tick.style.transformOrigin = 'bottom center';
         const angle = parseFloat(tick.dataset.angle);
