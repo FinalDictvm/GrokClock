@@ -517,7 +517,7 @@
       const toggleMoreOptionsButton = document.getElementById("toggleMoreOptions");
       const addCustomEventButton = document.getElementById("addCustomEvent");
       let moreOptionsVisible = false;
-      const centerX = 160, centerY = 160; // Adjusted for container size (320px / 2)
+idental      const centerX = 160, centerY = 160; // Adjusted for container size (320px / 2)
       const triggerRadius = 15;
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const averageTemps = [30, 35, 45, 55, 65, 75, 80, 78, 70, 60, 50, 35];
@@ -1013,17 +1013,16 @@
         const clockBaseY = baseY - 10;
 
         // Tick's endpoint (before rotation)
-        const endY = baseY - totalHeight;
+        const endYUnrotated = baseY - totalHeight;
 
         // Rotate around base to get actual endpoints
         const cos = Math.cos(radian);
         const sin = Math.sin(radian);
         const startX = clockBaseX + (baseX - baseX) * cos - (baseY - baseY) * sin + 10; // Base point
         const startY = clockBaseY + (baseX - baseX) * sin + (baseY - baseY) * cos + 10;
-        const unrotatedEndX = baseX;
-        const unrotatedEndY = endY;
-        const endX = clockBaseX + (unrotatedEndX - baseX) * cos - (unrotatedEndY - baseY) * sin + 10;
-        const endY = clockBaseY + (unrotatedEndX - baseX) * sin + (unrotatedEndY - baseY) * cos + 10;
+        const endXUnrotated = baseX;
+        const endX = clockBaseX + (endXUnrotated - baseX) * cos - (endYUnrotated - baseY) * sin + 10;
+        const endY = clockBaseY + (endXUnrotated - baseX) * sin + (endYUnrotated - baseY) * cos + 10;
 
         // Distance from center to base and end
         const distStart = Math.sqrt(Math.pow(startX - centerX, 2) + Math.pow(startY - centerY, 2));
@@ -1031,34 +1030,32 @@
 
         // Segment from 150px radius to end
         const radius = 150;
-        let intersectX, intersectY;
+        let segmentStartX, segmentStartY;
         if (distStart < radius && distEnd > radius) {
           const t = (radius - distStart) / (distEnd - distStart);
-          intersectX = startX + t * (endX - startX);
-          intersectY = startY + t * (endY - startY);
+          segmentStartX = startX + t * (endX - startX);
+          segmentStartY = startY + t * (endY - startY);
         } else if (distStart >= radius) {
-          intersectX = startX;
-          intersectY = startY;
+          segmentStartX = startX;
+          segmentStartY = startY;
         } else {
           return false; // Entire tick inside 150px
         }
 
         // Define the line segment from intersection (150px) to end
-        const lineStartX = intersectX;
-        const lineStartY = intersectY;
-        const lineEndX = endX;
-        const lineEndY = endY;
+        const segmentEndX = endX;
+        const segmentEndY = endY;
 
         // Check if mouse is within the tick's width along the segment
-        const dx = lineEndX - lineStartX;
-        const dy = lineEndY - lineStartY;
+        const dx = segmentEndX - segmentStartX;
+        const dy = segmentEndY - segmentStartY;
         const length = Math.sqrt(dx * dx + dy * dy);
         const unitX = dx / length;
         const unitY = dy / length;
 
         // Project mouse point onto the line
-        const vecX = mouseX - lineStartX;
-        const vecY = mouseY - lineStartY;
+        const vecX = mouseX - segmentStartX;
+        const vecY = mouseY - segmentStartY;
         const projection = vecX * unitX + vecY * unitY;
 
         if (projection < 0 || projection > length) return false; // Beyond segment ends
@@ -1616,3 +1613,5 @@
       }
     });
   </script>
+</body>
+</html>
