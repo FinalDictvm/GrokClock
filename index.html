@@ -117,7 +117,7 @@
     .day-tick.first {
       background: #00FF00; /* Bright green */
       height: 20px;
-      width: 2px; /* Changed from 1px */
+      width: 2px;
       opacity: 1;
     }
     .day-tick.even {
@@ -133,7 +133,7 @@
     }
     .day-tick.last-odd {
       background: white;
-      height: 16px; /* New class for odd last days */
+      height: 16px;
       opacity: 1;
     }
     .hand {
@@ -464,6 +464,11 @@
         <input type="checkbox" id="toggleCustomEvents">
         <span class="checkbox-custom"></span>
       </label>
+      <label class="checkbox-label">
+        Day Ticks
+        <input type="checkbox" id="toggleDayTicks">
+        <span class="checkbox-custom"></span>
+      </label>
     </div>
     <div class="controls-column more-options">
       <label class="checkbox-label">
@@ -479,11 +484,6 @@
       <label class="checkbox-label">
         Clock Hands
         <input type="checkbox" id="toggleClockHands">
-        <span class="checkbox-custom"></span>
-      </label>
-      <label class="checkbox-label">
-        Day Ticks
-        <input type="checkbox" id="toggleDayTicks">
         <span class="checkbox-custom"></span>
       </label>
       <label class="checkbox-label">
@@ -600,7 +600,7 @@
           if (day === 1) {
             tick.classList.add("first");
           } else if (day === days && day % 2 !== 0) {
-            tick.classList.add("last-odd"); // New class for odd last days
+            tick.classList.add("last-odd");
           } else if (day % 2 === 0) {
             tick.classList.add("even");
           } else {
@@ -610,6 +610,8 @@
             tick.classList.add("fifteenth");
           }
           tick.dataset.angle = angle;
+          tick.dataset.month = month + 1; // Store month (1-12)
+          tick.dataset.day = day; // Store day (1-31)
           fragment.appendChild(tick);
           dayCounter++;
         }
@@ -993,6 +995,24 @@
         holidayDisplay.style.opacity = "0";
       });
 
+      function getClosestDayTick(mouseX, mouseY) {
+        let closestTick = null;
+        let minDistance = Infinity;
+        dayTickElements.forEach(tick => {
+          if (getComputedStyle(tick).display !== "none") { // Only visible ticks
+            const rect = tick.getBoundingClientRect();
+            const tickCenterX = rect.left + rect.width / 2;
+            const tickCenterY = rect.top + rect.height / 2;
+            const distance = Math.sqrt(Math.pow(mouseX - tickCenterX, 2) + Math.pow(mouseY - tickCenterY, 2));
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestTick = tick;
+            }
+          }
+        });
+        return closestTick;
+      }
+
       clock.addEventListener("mousemove", function(e) {
         const mouseX = e.clientX;
         const mouseY = e.clientY;
@@ -1003,24 +1023,24 @@
           if (event.arc) event.arc.setAttribute('stroke-width', '2');
         });
 
-        if (visibilityMap["previewAllDates"]) {
+        if (visibilityMap["previewAllDates"] && visibilityMap["dayTicks"]) {
           const clockRect = clock.getBoundingClientRect();
           const x = mouseX - clockRect.left - (centerX - 10); // Adjust for border
           const y = mouseY - clockRect.top - (centerY - 10);
           const distance = Math.sqrt(x * x + y * y);
-          if (distance <= 185) {
-            let angleDeg = Math.atan2(y, x) * 180 / Math.PI + 90;
-            if (angleDeg < 0) angleDeg += 360;
-            const monthIndex = Math.floor(angleDeg / 30);
-            const month = (monthIndex + 11) % 12 + 1; // 0° = Dec, 30° = Jan
-            const totalDays = daysInMonth[month - 1];
-            const fractionWithinMonth = (angleDeg - (monthIndex * 30)) / 30;
-            const day = Math.floor(fractionWithinMonth * totalDays) + 1;
-            datePreview.textContent = formatDate(month, day);
-            datePreview.classList.add("visible");
+          if (distance <= 185) { // Within clock bounds
+            const closestTick = getClosestDayTick(mouseX, mouseY);
+            if (closestTick) {
+              const month = parseInt(closestTick.dataset.month);
+              const day = parseInt(closestTick.dataset.day);
+              datePreview.textContent = formatDate(month, day);
+              datePreview.classList.add("visible");
+            }
           } else {
             datePreview.classList.remove("visible");
           }
+        } else {
+          datePreview.classList.remove("visible");
         }
 
         if (activeMarker) {
