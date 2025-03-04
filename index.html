@@ -995,22 +995,82 @@
         holidayDisplay.style.opacity = "0";
       });
 
-      function getClosestDayTick(mouseX, mouseY) {
-        let closestTick = null;
-        let minDistance = Infinity;
-        dayTickElements.forEach(tick => {
-          if (getComputedStyle(tick).display !== "none") { // Only visible ticks
-            const rect = tick.getBoundingClientRect();
-            const tickCenterX = rect.left + rect.width / 2;
-            const tickCenterY = rect.top + rect.height / 2;
-            const distance = Math.sqrt(Math.pow(mouseX - tickCenterX, 2) + Math.pow(mouseY - tickCenterY, 2));
-            if (distance < minDistance) {
-              minDistance = distance;
-              closestTick = tick;
-            }
-          }
-        });
-        return closestTick;
+      function isPointOnTickOuterSegment(mouseX, mouseY, tick) {
+        if (getComputedStyle(tick).display === "none") return false;
+
+        const angleDeg = parseFloat(tick.dataset.angle);
+        const radian = (angleDeg - 90) * Math.PI / 180;
+        const width = parseFloat(window.getComputedStyle(tick).width);
+        const visibleHeight = parseFloat(window.getComputedStyle(tick).height);
+        const totalHeight = 170 + visibleHeight; // From positioning logic
+
+        // Tick's base (center of rotation) in container coords
+        const baseX = centerX - width / 2; // 159.5px for 1px, 159px for 2px
+        const baseY = 160;
+
+        // Convert to clock-relative coords (adjust for 10px border)
+        const clockBaseX = baseX - 10;
+        const clockBaseY = baseY - 10;
+
+        // Tick's endpoint (before rotation)
+        const endY = baseY - totalHeight;
+
+        // Rotate around base to get actual endpoints
+        const cos = Math.cos(radian);
+        const sin = Math.sin(radian);
+        const startX = clockBaseX + (baseX - baseX) * cos - (baseY - baseY) * sin + 10; // Base point
+        const startY = clockBaseY + (baseX - baseX) * sin + (baseY - baseY) * cos + 10;
+        const unrotatedEndX = baseX;
+        const unrotatedEndY = endY;
+        const endX = clockBaseX + (unrotatedEndX - baseX) * cos - (unrotatedEndY - baseY) * sin + 10;
+        const endY = clockBaseY + (unrotatedEndX - baseX) * sin + (unrotatedEndY - baseY) * cos + 10;
+
+        // Distance from center to base and end
+        const distStart = Math.sqrt(Math.pow(startX - centerX, 2) + Math.pow(startY - centerY, 2));
+        const distEnd = Math.sqrt(Math.pow(endX - centerX, 2) + Math.pow(endY - centerY, 2));
+
+        // Segment from 150px radius to end
+        const radius = 150;
+        let intersectX, intersectY;
+        if (distStart < radius && distEnd > radius) {
+          const t = (radius - distStart) / (distEnd - distStart);
+          intersectX = startX + t * (endX - startX);
+          intersectY = startY + t * (endY - startY);
+        } else if (distStart >= radius) {
+          intersectX = startX;
+          intersectY = startY;
+        } else {
+          return false; // Entire tick inside 150px
+        }
+
+        // Define the line segment from intersection (150px) to end
+        const lineStartX = intersectX;
+        const lineStartY = intersectY;
+        const lineEndX = endX;
+        const lineEndY = endY;
+
+        // Check if mouse is within the tick's width along the segment
+        const dx = lineEndX - lineStartX;
+        const dy = lineEndY - lineStartY;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        const unitX = dx / length;
+        const unitY = dy / length;
+
+        // Project mouse point onto the line
+        const vecX = mouseX - lineStartX;
+        const vecY = mouseY - lineStartY;
+        const projection = vecX * unitX + vecY * unitY;
+
+        if (projection < 0 || projection > length) return false; // Beyond segment ends
+
+        // Perpendicular distance from mouse to line
+        const perpX = vecX - projection * unitX;
+        const perpY = vecY - projection * unitY;
+        const distance = Math.sqrt(perpX * perpX + perpY * perpY);
+
+        // Check if within half-width of tick (plus a small buffer for usability)
+        const halfWidth = width / 2 + 1; // 0.5px for 1px ticks, 1px for 2px ticks, +1px buffer
+        return distance <= halfWidth;
       }
 
       clock.addEventListener("mousemove", function(e) {
@@ -1024,18 +1084,18 @@
         });
 
         if (visibilityMap["previewAllDates"] && visibilityMap["dayTicks"]) {
-          const clockRect = clock.getBoundingClientRect();
-          const x = mouseX - clockRect.left - (centerX - 10); // Adjust for border
-          const y = mouseY - clockRect.top - (centerY - 10);
-          const distance = Math.sqrt(x * x + y * y);
-          if (distance <= 185) { // Within clock bounds
-            const closestTick = getClosestDayTick(mouseX, mouseY);
-            if (closestTick) {
-              const month = parseInt(closestTick.dataset.month);
-              const day = parseInt(closestTick.dataset.day);
-              datePreview.textContent = formatDate(month, day);
-              datePreview.classList.add("visible");
+          let previewTick = null;
+          for (const tick of dayTickElements) {
+            if (isPointOnTickOuterSegment(mouseX, mouseY, tick)) {
+              previewTick = tick;
+              break;
             }
+          }
+          if (previewTick) {
+            const month = parseInt(previewTick.dataset.month);
+            const day = parseInt(previewTick.dataset.day);
+            datePreview.textContent = formatDate(month, day);
+            datePreview.classList.add("visible");
           } else {
             datePreview.classList.remove("visible");
           }
@@ -1556,5 +1616,3 @@
       }
     });
   </script>
-</body>
-</html>
