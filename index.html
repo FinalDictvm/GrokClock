@@ -509,7 +509,7 @@
       const dayTicksContainer = document.getElementById("dayTicksContainer");
       const seasonOverlay = document.getElementById("seasonOverlay");
       const pointer = document.getElementById("pointer");
-      const hand = document.getElementOfId("hand");
+      const hand = document.getElementById("hand");
       const datePreview = document.getElementById("datePreview");
       const holidayDisplay = document.getElementById("holidayDisplay");
       const fpsDisplay = document.getElementById("fpsDisplay");
@@ -901,7 +901,7 @@
             dayTickElements.forEach((tick, index) => {
               setTimeout(() => {
                 tick.style.opacity = tick.classList.contains("first") || tick.classList.contains("last-odd") || tick.classList.contains("odd") ? "1" : "0.8";
-              }, index * 5); // 5ms delay per tick, total ~1.8s for 365 ticks
+              }, index * 5);
             });
           } else {
             dayTickElements.forEach((tick, index) => {
