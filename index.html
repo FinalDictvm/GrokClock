@@ -112,7 +112,7 @@
       background: #ADD8E6;
       opacity: 0;
       z-index: 0;
-      transition: opacity 0.1s ease-in-out;
+      transition: opacity 0.025s ease-in-out; /* 4x faster: was 0.1s */
     }
     .day-tick.first {
       background: #00FF00;
@@ -901,13 +901,13 @@
             dayTickElements.forEach((tick, index) => {
               setTimeout(() => {
                 tick.style.opacity = tick.classList.contains("first") || tick.classList.contains("last-odd") || tick.classList.contains("odd") ? "1" : "0.8";
-              }, index * 5);
+              }, index * 1.25); // 4x faster: was 5ms
             });
           } else {
             dayTickElements.forEach((tick, index) => {
               setTimeout(() => {
                 tick.style.opacity = "0";
-              }, index * 5);
+              }, index * 1.25); // 4x faster: was 5ms
             });
           }
         });
