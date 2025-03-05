@@ -112,7 +112,7 @@
       background: #ADD8E6;
       opacity: 0.4;
       z-index: 0;
-      transform: scaleY(0.83); /* Updated from 0.85 */
+      transform: scaleY(0.83);
       transition: transform 0.15s ease-in-out;
     }
     .day-tick.first {
@@ -614,10 +614,7 @@
           }
           tick.dataset.angle = angle;
           tick.dataset.dayIndex = dayCounter;
-          tick.dataset.month = month + 1; // 1-based month
-          tick.dataset.day = day;         // Day of the month
           fragment.appendChild(tick);
-          dayTickElements.push(tick);     // Add to array during creation
           dayCounter++;
         }
       });
@@ -635,7 +632,8 @@
         tick.style.top = (160 - totalHeight) + 'px';
         tick.style.transformOrigin = 'bottom center';
         const angle = parseFloat(tick.dataset.angle);
-        tick.style.transform = `rotate(${angle}deg) scaleY(0.83) translateZ(0)`; // Updated to 0.83
+        tick.style.transform = `rotate(${angle}deg) scaleY(0.83) translateZ(0)`; // Shrunk to 83%
+        dayTickElements.push(tick);
       });
 
       // FPS setup
@@ -900,46 +898,24 @@
 
       const toggleDayTicks = document.getElementById("toggleDayTicks");
       if (toggleDayTicks) {
-        toggleDayTicks.addEventListener("change", function(e) {
+        toggleDayTicks.addEventListener("change", function() {
           visibilityMap["dayTicks"] = this.checked;
-          const checked = e.target.checked;
-          if (checked) {
-            const D = 7;    // Delay between ticks in ms
-            const T = 150;  // Animation duration in ms
-
-            // Green ticks (1st of each month)
-            const greenTicks = dayTickElements.filter(tick => tick.classList.contains('first'));
-            greenTicks.forEach((tick, index) => {
-              const delay = index * D;
-              setTimeout(() => {
-                const angle = parseFloat(tick.dataset.angle);
-                tick.style.transform = `rotate(${angle}deg) scaleY(1) translateZ(0)`;
-              }, delay);
-            });
-
-            // Other ticks per month
-            for (let month = 0; month < 12; month++) {
-              const monthTicks = dayTickElements.filter(
-                tick => parseInt(tick.dataset.month) === month + 1 && parseInt(tick.dataset.day) >= 2
-              );
-              monthTicks.sort((a, b) => parseInt(a.dataset.day) - parseInt(b.dataset.day));
-              const S_m = (11 * D + T) + month * 13 * D; // Start time for this month's other ticks
-              monthTicks.forEach((tick, index) => {
-                const delay = S_m + index * D;
-                setTimeout(() => {
-                  const angle = parseFloat(tick.dataset.angle);
-                  tick.style.transform = `rotate(${angle}deg) scaleY(1) translateZ(0)`;
-                }, delay);
-              });
-            }
-          } else {
-            const totalStartSpan = 350; // Total time for stagger
-            const N = dayTickElements.length; // 365 ticks
+          const N = dayTickElements.length;
+          const totalStartSpan = 350; // 0.5s total - 0.15s animation
+          if (this.checked) {
             dayTickElements.forEach((tick, index) => {
               const delay = (index / (N - 1)) * totalStartSpan;
               setTimeout(() => {
                 const angle = parseFloat(tick.dataset.angle);
-                tick.style.transform = `rotate(${angle}deg) scaleY(0.83) translateZ(0)`; // Updated to 0.83
+                tick.style.transform = `rotate(${angle}deg) scaleY(1) translateZ(0)`; // Grow to 100%
+              }, delay);
+            });
+          } else {
+            dayTickElements.forEach((tick, index) => {
+              const delay = (index / (N - 1)) * totalStartSpan;
+              setTimeout(() => {
+                const angle = parseFloat(tick.dataset.angle);
+                tick.style.transform = `rotate(${angle}deg) scaleY(0.83) translateZ(0)`; // Shrink to 83%
               }, delay);
             });
           }
@@ -1080,7 +1056,7 @@
               const endDate = formatDate(event.endMarker.dataset.month, event.endMarker.dataset.day);
               previewWindow.innerHTML = event.name + "<br><span class='event-date'>" + startDate + " <span class='to'>to</span> " + endDate + "</span>";
             } else {
-              previewWindow.innerHTML = event.name + "<br><span class='event-date'>" + activeMarker.dataset.date + "</span>";
+              previewWindow.innerHTML = event.name + "<br><span class='event-date'>" + event.startMarker.dataset.date + "</span>";
             }
           } else {
             activeMarker.classList.add("active");
@@ -1430,6 +1406,7 @@
         visibleArcs.forEach(arc => {
           const level = arc.level;
           const radius = 160 - level * 2;
+          // Update start marker
           const startAngle = getEventAngle(arc, 'start');
           const startRadian = (startAngle - 90) * Math.PI / 180;
           const startX = (centerX - 10) + radius * Math.cos(startRadian);
@@ -1438,6 +1415,7 @@
           arc.startMarker.style.top = (startY - 10) + "px";
           arc.startMarker.dataset.baseLeft = arc.startMarker.style.left;
           arc.startMarker.dataset.baseTop = arc.startMarker.style.top;
+          // Update end marker
           const endAngle = getEventAngle(arc, 'end');
           const endRadian = (endAngle - 90) * Math.PI / 180;
           const endX = (centerX - 10) + radius * Math.cos(endRadian);
@@ -1446,6 +1424,7 @@
           arc.endMarker.style.top = (endY - 10) + "px";
           arc.endMarker.dataset.baseLeft = arc.endMarker.style.left;
           arc.endMarker.dataset.baseTop = arc.endMarker.style.top;
+          // Update arc path
           const largeArcFlag = Math.abs(endAngle - startAngle) > 180 ? 1 : 0;
           const sweepFlag = endAngle >= startAngle ? 1 : 0;
           const pathD = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}`;
