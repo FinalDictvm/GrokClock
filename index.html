@@ -46,6 +46,7 @@
                   inset -0.5px 0.5px 5px rgba(0, 0, 0, 0.3);
       filter: drop-shadow(-5px 10px 8px rgba(0, 0, 0, 0.2));
       z-index: 2;
+      will-change: transform; /* Optimize rendering */
     }
     .day-ticks-container {
       position: absolute;
@@ -110,10 +111,10 @@
       position: absolute;
       width: 1px;
       background: #ADD8E6;
-      opacity: 0.4; /* Fixed opacity, no fade */
+      opacity: 0.4;
       z-index: 0;
-      transform: scaleY(0); /* Start shrunk */
-      transition: transform 0.025s ease-in-out; /* 4x faster growth */
+      transform: scaleY(0);
+      transform-origin: bottom center;
     }
     .day-tick.first {
       background: #00FF00;
@@ -138,6 +139,20 @@
       height: 16px;
       opacity: 1;
     }
+    @keyframes growTick {
+      0% { transform: scaleY(0); }
+      100% { transform: scaleY(1); }
+    }
+    @keyframes shrinkTick {
+      0% { transform: scaleY(1); }
+      100% { transform: scaleY(0); }
+    }
+    .day-tick.grow {
+      animation: growTick 0.3s ease-in-out forwards;
+    }
+    .day-tick.shrink {
+      animation: shrinkTick 0.3s ease-in-out forwards;
+    }
     .hand {
       width: 4px;
       height: 120px;
@@ -150,6 +165,7 @@
       transition: transform 0.5s linear;
       z-index: 3;
       box-shadow: 0 2px 3px rgba(0,0,0,0.3);
+      will-change: transform; /* Optimize rendering */
     }
     .pointer {
       width: 1px;
@@ -631,7 +647,7 @@
         tick.style.top = (160 - totalHeight) + 'px';
         tick.style.transformOrigin = 'bottom center';
         const angle = parseFloat(tick.dataset.angle);
-        tick.style.transform = `rotate(${angle}deg) scaleY(0)`; // Initial state: shrunk
+        tick.style.transform = `rotate(${angle}deg) scaleY(0)`;
         dayTickElements.push(tick);
       });
 
@@ -753,8 +769,11 @@
         if (secondHand) secondHand.style.transform = `rotate(${secondAngle}deg)`;
       }
 
-      updateHands();
-      setInterval(updateHands, 1000);
+      function animateHands(timestamp) {
+        updateHands();
+        requestAnimationFrame(animateHands);
+      }
+      requestAnimationFrame(animateHands); // Use RAF for smoother updates
 
       const toggleMajorHolidays = document.getElementById("toggleMajorHolidays");
       if (toggleMajorHolidays) {
@@ -899,19 +918,22 @@
       if (toggleDayTicks) {
         toggleDayTicks.addEventListener("change", function() {
           visibilityMap["dayTicks"] = this.checked;
+          const totalDuration = 500; // 0.5s total
+          const animationDuration = 300; // 0.3s per animation
+          const stagger = (totalDuration - animationDuration) / (dayTickElements.length - 1);
           if (this.checked) {
             dayTickElements.forEach((tick, index) => {
               setTimeout(() => {
-                const angle = parseFloat(tick.dataset.angle);
-                tick.style.transform = `rotate(${angle}deg) scaleY(1)`; // Grow to full size
-              }, index * 1.25); // 4x faster: 456ms total sequence
+                tick.classList.remove("shrink");
+                tick.classList.add("grow");
+              }, index * stagger);
             });
           } else {
             dayTickElements.forEach((tick, index) => {
               setTimeout(() => {
-                const angle = parseFloat(tick.dataset.angle);
-                tick.style.transform = `rotate(${angle}deg) scaleY(0)`; // Shrink back
-              }, index * 1.25); // 4x faster: 456ms total sequence
+                tick.classList.remove("grow");
+                tick.classList.add("shrink");
+              }, index * stagger);
             });
           }
         });
@@ -1051,7 +1073,7 @@
               const endDate = formatDate(event.endMarker.dataset.month, event.endMarker.dataset.day);
               holidayDisplay.innerHTML = event.name + "<br><span class='event-date'>" + startDate + " <span class='to'>to</span> " + endDate + "</span>";
             } else {
-              holidayDisplay.innerHTML = event.name + "<br><span class='event-date'>" + event.startMarker.dataset.date + "</span>";
+              holidayDisplay.innerHTML = event.name + "<br><span class='event-date'>" + activeMarker.dataset.date + "</span>";
             }
           } else {
             activeMarker.classList.add("active");
@@ -1306,12 +1328,15 @@
         container.style.display = "none";
         const dot = document.createElement("div");
         dot.className = `${type}-dot`;
+        if (data.color && /^#[0-9A-F]{6}$/i.test(data.color)) {
+          dot.style.backgroundColor = data.color;
+        }
         container.appendChild(dot);
         clock.appendChild(container);
         return container;
       }
 
-      function createArc(startMarker, endMarker, type) {
+      function createArc(startMarker, endMarker, type, color) {
         const svg = clock.querySelector('.arcs');
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         const startAngle = parseFloat(startMarker.dataset.angle);
@@ -1327,7 +1352,7 @@
         const sweepFlag = endAngle >= startAngle ? 1 : 0;
         const pathD = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}`;
         path.setAttribute('d', pathD);
-        path.setAttribute('stroke', getColorForType(type));
+        path.setAttribute('stroke', color && /^#[0-9A-F]{6}$/i.test(color) ? color : getColorForType(type));
         path.setAttribute('stroke-width', '2');
         path.setAttribute('fill', 'none');
         path.style.display = "none";
@@ -1478,12 +1503,12 @@
       fetchLifeEvents().then(lifeEvents => {
         lifeEvents.forEach(e => {
           const eventId = `life-${eventCounter++}`;
-          const startData = { name: e.name, month: e.month, day: e.day, year: e.year };
+          const startData = { name: e.name, month: e.month, day: e.day, year: e.year, color: e.color };
           const startMarker = createMarker(startData, "life", eventId);
           if (e.endMonth && e.endDay) {
-            const endData = { name: e.name, month: e.endMonth, day: e.endDay, year: e.endYear };
+            const endData = { name: e.name, month: e.endMonth, day: e.endDay, year: e.endYear, color: e.color };
             const endMarker = createMarker(endData, "life", eventId);
-            const arc = createArc(startMarker, endMarker, "life");
+            const arc = createArc(startMarker, endMarker, "life", e.color);
             events.set(eventId, { type: "life", name: e.name, startMarker, endMarker, arc });
           } else {
             events.set(eventId, { type: "life", name: e.name, startMarker });
@@ -1504,11 +1529,12 @@
           return rows.map(row => {
             const name = row.c[0]?.v ? row.c[0].v + "'s Birthday" : null;
             const dateStr = row.c[1]?.v || null;
+            const color = row.c[2]?.v || null;
             if (!name || !dateStr) return null;
             const match = dateStr.match(/Date\((\d+),(\d+),(\d+)\)/);
             if (!match) return null;
             const [, year, month, day] = match.map(Number);
-            return { name, month: month + 1, day, year };
+            return { name, month: month + 1, day, year, color };
           }).filter(b => b);
         } catch (error) {
           console.error('Error fetching birthdays:', error);
@@ -1529,6 +1555,7 @@
             const name = row.c[0]?.v || null;
             const dateStr = row.c[1]?.v || null;
             const endDateStr = row.c[2]?.v || null;
+            const color = row.c[3]?.v || null;
             if (!name || !dateStr) return null;
             const match = dateStr.match(/Date\((\d+),(\d+),(\d+)\)/);
             if (!match) return null;
@@ -1541,7 +1568,7 @@
                 endMonth += 1;
               }
             }
-            return { name, month: month + 1, day, year, endMonth, endDay, endYear };
+            return { name, month: month + 1, day, year, endMonth, endDay, endYear, color };
           }).filter(e => e);
         } catch (error) {
           console.error('Error fetching Life Events:', error);
