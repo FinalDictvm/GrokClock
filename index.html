@@ -85,7 +85,7 @@
       overflow: visible;
     }
     .arcs path {
-      transition: stroke-width 0.2s ease;
+      transition: stroke-width 0.2s ease, d 0.3s ease;
     }
     .month {
       position: absolute;
@@ -112,8 +112,8 @@
       background: #ADD8E6;
       opacity: 0.4;
       z-index: 0;
-      transform: scaleY(0.8); /* Start at 80% */
-      transition: transform 0.3s ease-in-out;
+      transform: scaleY(0.9);
+      transition: transform 0.15s ease-in-out;
     }
     .day-tick.first {
       background: #00FF00;
@@ -267,6 +267,7 @@
       transform-origin: 0 50%;
       pointer-events: none;
       z-index: 6;
+      transition: left 0.3s ease, top 0.3s ease, width 0.3s ease, transform 0.3s ease;
     }
     .controls {
       margin-top: 105px;
@@ -528,7 +529,7 @@
       const dayTickElements = [];
       const events = new Map();
       let eventCounter = 0;
-      const hoveredDates = new Set(); // Track hovered dates for dot spacing
+      const hoveredDates = new Set();
 
       const typePriority = ["major-holiday", "minor-holiday", "birthday", "life", "custom"];
       const visibilityMap = {
@@ -632,7 +633,7 @@
         tick.style.top = (160 - totalHeight) + 'px';
         tick.style.transformOrigin = 'bottom center';
         const angle = parseFloat(tick.dataset.angle);
-        tick.style.transform = `rotate(${angle}deg) scaleY(0.8) translateZ(0)`; // Start at 80%
+        tick.style.transform = `rotate(${angle}deg) scaleY(0.9) translateZ(0)`;
         dayTickElements.push(tick);
       });
 
@@ -901,13 +902,13 @@
         toggleDayTicks.addEventListener("change", function() {
           visibilityMap["dayTicks"] = this.checked;
           const N = dayTickElements.length;
-          const totalStartSpan = 200; // ms, last tick starts at 200ms, animation takes 300ms
+          const totalStartSpan = 350; // 0.5s total - 0.15s animation
           if (this.checked) {
             dayTickElements.forEach((tick, index) => {
               const delay = (index / (N - 1)) * totalStartSpan;
               setTimeout(() => {
                 const angle = parseFloat(tick.dataset.angle);
-                tick.style.transform = `rotate(${angle}deg) scaleY(1) translateZ(0)`; // Grow to 100%
+                tick.style.transform = `rotate(${angle}deg) scaleY(1) translateZ(0)`;
               }, delay);
             });
           } else {
@@ -915,7 +916,7 @@
               const delay = (index / (N - 1)) * totalStartSpan;
               setTimeout(() => {
                 const angle = parseFloat(tick.dataset.angle);
-                tick.style.transform = `rotate(${angle}deg) scaleY(0.8) translateZ(0)`; // Shrink to 80%
+                tick.style.transform = `rotate(${angle}deg) scaleY(0.9) translateZ(0)`;
               }, delay);
             });
           }
@@ -1144,7 +1145,7 @@
             marker.style.display = "none";
           }, 300);
         }
-        updateArcVisibility(marker);
+        updateArcVisibility();
         updateAllDotPositions();
       }
 
@@ -1246,20 +1247,21 @@
             e.stopPropagation();
             hideLabel(marker);
           });
-          updateArcVisibility(marker);
+          updateArcVisibility();
         }
         updateAllDotPositions();
       }
 
-      function updateArcVisibility(marker = null) {
+      function updateArcVisibility() {
         events.forEach(event => {
-          if (event.type === "life" && event.arc) {
-            const shouldShow = visibilityMap["life"] || 
+          if (event.arc) {
+            const shouldShow = visibilityMap[event.type] || 
                               (event.startMarker.dataset.labelVisible === "true") || 
                               (event.endMarker && event.endMarker.dataset.labelVisible === "true");
             event.arc.style.display = shouldShow ? "block" : "none";
           }
         });
+        updateArcOffsets();
       }
 
       function getClosestMarker(x, y) {
@@ -1281,7 +1283,7 @@
         return activeMarker;
       }
 
-      function createMarker(data, type, eventId) {
+      function createMarker(data, type, eventId, offset = false) {
         if (!typePriority.includes(type)) {
           typePriority.push(type);
         }
@@ -1290,7 +1292,7 @@
         const fraction = (data.day - 1) / totalDays;
         const angle = (data.month - 1 + fraction + 1) * 30;
         const radian = (angle - 90) * Math.PI / 180;
-        const baseRadius = 160;
+        const baseRadius = offset ? 156 : 160;
         const markerCenterX = centerX - 10 + baseRadius * Math.cos(radian);
         const markerCenterY = centerY - 10 + baseRadius * Math.sin(radian);
         const container = document.createElement("div");
@@ -1315,7 +1317,6 @@
         container.appendChild(dot);
         clock.appendChild(container);
 
-        // Add hover event listeners for dot spacing
         container.addEventListener('mouseenter', () => {
           const dateKey = `${container.dataset.month}-${container.dataset.day}`;
           hoveredDates.add(dateKey);
@@ -1330,12 +1331,12 @@
         return container;
       }
 
-      function createArc(startMarker, endMarker, type, color) {
+      function createArc(startMarker, endMarker, type, color, offset = false) {
         const svg = clock.querySelector('.arcs');
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         const startAngle = parseFloat(startMarker.dataset.angle);
         const endAngle = parseFloat(endMarker.dataset.angle);
-        const radius = 160;
+        const radius = offset ? 156 : 160;
         const startRadian = (startAngle - 90) * Math.PI / 180;
         const endRadian = (endAngle - 90) * Math.PI / 180;
         const startX = (centerX - 10) + radius * Math.cos(startRadian);
@@ -1363,6 +1364,137 @@
           case 'life': return 'rgb(13, 126, 255)';
           default: return 'black';
         }
+      }
+
+      function getEventAngle(event, markerType) {
+        const marker = markerType === 'start' ? event.startMarker : event.endMarker;
+        return parseFloat(marker.dataset.angle);
+      }
+
+      function doArcsOverlap(event1, event2) {
+        if (!event1.endMarker || !event2.endMarker) return false;
+        const start1 = getEventAngle(event1, 'start');
+        const end1 = getEventAngle(event1, 'end');
+        const start2 = getEventAngle(event2, 'start');
+        const end2 = getEventAngle(event2, 'end');
+        const normalizedEnd1 = end1 < start1 ? end1 + 360 : end1;
+        const normalizedEnd2 = end2 < start2 ? end2 + 360 : end2;
+        const normalizedStart1 = start1;
+        const normalizedStart2 = start2;
+        return (normalizedStart2 <= normalizedEnd1 && normalizedEnd2 >= normalizedStart1) ||
+               (normalizedStart1 <= normalizedEnd2 && normalizedEnd1 >= normalizedStart2);
+      }
+
+      function isArcContained(eventInner, eventOuter) {
+        if (!eventInner.endMarker || !eventOuter.endMarker) return false;
+        const startInner = getEventAngle(eventInner, 'start');
+        const endInner = getEventAngle(eventInner, 'end');
+        const startOuter = getEventAngle(eventOuter, 'start');
+        const endOuter = getEventAngle(eventOuter, 'end');
+        const normalizedEndInner = endInner < startInner ? endInner + 360 : endInner;
+        const normalizedEndOuter = endOuter < startOuter ? endOuter + 360 : endOuter;
+        const normalizedStartInner = startInner < startOuter ? startInner + 360 : startInner;
+        const normalizedStartOuter = startOuter;
+        return normalizedStartInner >= normalizedStartOuter && normalizedEndInner <= normalizedEndOuter;
+      }
+
+      function updateArcOffsets() {
+        const arcEvents = Array.from(events.values()).filter(e => e.arc);
+        const offsets = new Map();
+
+        arcEvents.forEach(event => offsets.set(event, false));
+
+        for (let i = 0; i < arcEvents.length; i++) {
+          for (let j = i + 1; j < arcEvents.length; j++) {
+            const event1 = arcEvents[i];
+            const event2 = arcEvents[j];
+            if (doArcsOverlap(event1, event2)) {
+              const isEvent1Contained = isArcContained(event1, event2);
+              const isEvent2Contained = isArcContained(event2, event1);
+              let eventToOffset;
+              if (isEvent1Contained) {
+                eventToOffset = event1;
+              } else if (isEvent2Contained) {
+                eventToOffset = event2;
+              } else {
+                const start1 = getEventAngle(event1, 'start');
+                const start2 = getEventAngle(event2, 'start');
+                eventToOffset = start1 <= start2 ? event2 : event1;
+              }
+              offsets.set(eventToOffset, true);
+            }
+          }
+        }
+
+        arcEvents.forEach(event => {
+          const shouldOffset = offsets.get(event);
+          const isVisible = event.arc.style.display !== "none";
+          if (isVisible && shouldOffset && !event.offset) {
+            event.offset = true;
+            const newStartMarker = createMarker({
+              name: event.startMarker.dataset.name,
+              month: event.startMarker.dataset.month,
+              day: event.startMarker.dataset.day,
+              year: event.startMarker.dataset.year,
+              color: event.startMarker.querySelector('div').style.backgroundColor
+            }, event.type, event.startMarker.dataset.eventId, true);
+            const newEndMarker = createMarker({
+              name: event.endMarker.dataset.name,
+              month: event.endMarker.dataset.month,
+              day: event.endMarker.dataset.day,
+              year: event.endMarker.dataset.year,
+              color: event.endMarker.querySelector('div').style.backgroundColor
+            }, event.type, event.endMarker.dataset.eventId, true);
+            const newArc = createArc(newStartMarker, newEndMarker, event.type, event.arc.getAttribute('stroke'), true);
+            newStartMarker.style.left = event.startMarker.style.left;
+            newStartMarker.style.top = event.startMarker.style.top;
+            newEndMarker.style.left = event.endMarker.style.left;
+            newEndMarker.style.top = event.endMarker.style.top;
+            newStartMarker.dataset.baseLeft = newStartMarker.style.left;
+            newStartMarker.dataset.baseTop = newStartMarker.style.top;
+            newEndMarker.dataset.baseLeft = newEndMarker.style.left;
+            newEndMarker.dataset.baseTop = newEndMarker.style.top;
+            newArc.style.display = event.arc.style.display;
+            clock.removeChild(event.startMarker);
+            clock.removeChild(event.endMarker);
+            event.arc.remove();
+            event.startMarker = newStartMarker;
+            event.endMarker = newEndMarker;
+            event.arc = newArc;
+          } else if (!shouldOffset && event.offset) {
+            event.offset = false;
+            const newStartMarker = createMarker({
+              name: event.startMarker.dataset.name,
+              month: event.startMarker.dataset.month,
+              day: event.startMarker.dataset.day,
+              year: event.startMarker.dataset.year,
+              color: event.startMarker.querySelector('div').style.backgroundColor
+            }, event.type, event.startMarker.dataset.eventId, false);
+            const newEndMarker = createMarker({
+              name: event.endMarker.dataset.name,
+              month: event.endMarker.dataset.month,
+              day: event.endMarker.dataset.day,
+              year: event.endMarker.dataset.year,
+              color: event.endMarker.querySelector('div').style.backgroundColor
+            }, event.type, event.endMarker.dataset.eventId, false);
+            const newArc = createArc(newStartMarker, newEndMarker, event.type, event.arc.getAttribute('stroke'), false);
+            newStartMarker.style.left = event.startMarker.style.left;
+            newStartMarker.style.top = event.startMarker.style.top;
+            newEndMarker.style.left = event.endMarker.style.left;
+            newEndMarker.style.top = event.endMarker.style.top;
+            newStartMarker.dataset.baseLeft = newStartMarker.style.left;
+            newStartMarker.dataset.baseTop = newStartMarker.style.top;
+            newEndMarker.dataset.baseLeft = newEndMarker.style.left;
+            newEndMarker.dataset.baseTop = newEndMarker.style.top;
+            newArc.style.display = event.arc.style.display;
+            clock.removeChild(event.startMarker);
+            clock.removeChild(event.endMarker);
+            event.arc.remove();
+            event.startMarker = newStartMarker;
+            event.endMarker = newEndMarker;
+            event.arc = newArc;
+          }
+        });
       }
 
       function isDateRangeMarker(marker) {
@@ -1408,11 +1540,14 @@
             return Number(a.dataset.order) - Number(b.dataset.order);
           });
 
-          const spacing = hoveredDates.has(dateKey) ? 5 : 4; // 5px on hover, 4px default
+          const spacing = hoveredDates.has(dateKey) ? 5 : 4;
           dots.forEach((dot, index) => {
-            const angle = (dot.dataset.month - 1 + (dot.dataset.day - 1) / new Date(new Date().getFullYear(), dot.dataset.month, 0).getDate() + 1) * 30;
+            const eventId = dot.dataset.eventId;
+            const offset = eventId && events.has(eventId) && events.get(eventId).offset ? 4 : 0;
+            const angle = parseFloat(dot.dataset.angle);
             const radian = (angle - 90) * Math.PI / 180;
-            const radius = 160 + index * spacing;
+            const baseRadius = 160 - offset;
+            const radius = baseRadius + index * spacing;
             const markerCenterX = (centerX - 10) + radius * Math.cos(radian);
             const markerCenterY = (centerY - 10) + radius * Math.sin(radian);
             dot.style.left = (markerCenterX - 10) + "px";
@@ -1504,12 +1639,13 @@
             const endData = { name: e.name, month: e.endMonth, day: e.endDay, year: e.endYear, color: e.color };
             const endMarker = createMarker(endData, "life", eventId);
             const arc = createArc(startMarker, endMarker, "life", e.color);
-            events.set(eventId, { type: "life", name: e.name, startMarker, endMarker, arc });
+            events.set(eventId, { type: "life", name: e.name, startMarker, endMarker, arc, offset: false });
           } else {
             events.set(eventId, { type: "life", name: e.name, startMarker });
           }
         });
         updateAllDotPositions();
+        updateArcVisibility();
       });
 
       async function fetchBirthdays() {
