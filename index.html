@@ -635,7 +635,7 @@
         tick.style.top = (160 - totalHeight) + 'px';
         tick.style.transformOrigin = 'bottom center';
         const angle = parseFloat(tick.dataset.angle);
-        tick.style.transform = `rotate(${angle}deg) scaleY(0.84) translateZ(0)`; // Updated to 0.84
+        tick.style.transform = `rotate(${angle}deg) scaleY(0.83) translateZ(0)`; // Updated to 0.83
       });
 
       // FPS setup
@@ -939,7 +939,7 @@
               const delay = (index / (N - 1)) * totalStartSpan;
               setTimeout(() => {
                 const angle = parseFloat(tick.dataset.angle);
-                tick.style.transform = `rotate(${angle}deg) scaleY(0.84) translateZ(0)`; // Updated to 0.84
+                tick.style.transform = `rotate(${angle}deg) scaleY(0.83) translateZ(0)`; // Updated to 0.83
               }, delay);
             });
           }
