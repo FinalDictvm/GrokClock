@@ -112,8 +112,8 @@
       background: #ADD8E6;
       opacity: 0.4;
       z-index: 0;
-      transform: scaleY(.9);
-      transition: transform 0.3s ease-in-out; /* Updated to 0.3s */
+      transform: scaleY(0.8); /* Start at 80% */
+      transition: transform 0.3s ease-in-out;
     }
     .day-tick.first {
       background: #00FF00;
@@ -528,6 +528,7 @@
       const dayTickElements = [];
       const events = new Map();
       let eventCounter = 0;
+      const hoveredDates = new Set(); // Track hovered dates for dot spacing
 
       const typePriority = ["major-holiday", "minor-holiday", "birthday", "life", "custom"];
       const visibilityMap = {
@@ -631,7 +632,7 @@
         tick.style.top = (160 - totalHeight) + 'px';
         tick.style.transformOrigin = 'bottom center';
         const angle = parseFloat(tick.dataset.angle);
-        tick.style.transform = `rotate(${angle}deg) scaleY(0) translateZ(0)`; // Added translateZ(0)
+        tick.style.transform = `rotate(${angle}deg) scaleY(0.8) translateZ(0)`; // Start at 80%
         dayTickElements.push(tick);
       });
 
@@ -906,7 +907,7 @@
               const delay = (index / (N - 1)) * totalStartSpan;
               setTimeout(() => {
                 const angle = parseFloat(tick.dataset.angle);
-                tick.style.transform = `rotate(${angle}deg) scaleY(1) translateZ(0)`;
+                tick.style.transform = `rotate(${angle}deg) scaleY(1) translateZ(0)`; // Grow to 100%
               }, delay);
             });
           } else {
@@ -914,7 +915,7 @@
               const delay = (index / (N - 1)) * totalStartSpan;
               setTimeout(() => {
                 const angle = parseFloat(tick.dataset.angle);
-                tick.style.transform = `rotate(${angle}deg) scaleY(0) translateZ(0)`;
+                tick.style.transform = `rotate(${angle}deg) scaleY(0.8) translateZ(0)`; // Shrink to 80%
               }, delay);
             });
           }
@@ -1310,9 +1311,22 @@
         container.style.display = "none";
         const dot = document.createElement("div");
         dot.className = `${type}-dot`;
-        if (data.color) dot.style.backgroundColor = data.color; // Apply custom color if present
+        if (data.color) dot.style.backgroundColor = data.color;
         container.appendChild(dot);
         clock.appendChild(container);
+
+        // Add hover event listeners for dot spacing
+        container.addEventListener('mouseenter', () => {
+          const dateKey = `${container.dataset.month}-${container.dataset.day}`;
+          hoveredDates.add(dateKey);
+          updateAllDotPositions();
+        });
+        container.addEventListener('mouseleave', () => {
+          const dateKey = `${container.dataset.month}-${container.dataset.day}`;
+          hoveredDates.delete(dateKey);
+          updateAllDotPositions();
+        });
+
         return container;
       }
 
@@ -1332,7 +1346,7 @@
         const sweepFlag = endAngle >= startAngle ? 1 : 0;
         const pathD = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}`;
         path.setAttribute('d', pathD);
-        path.setAttribute('stroke', color || getColorForType(type)); // Use custom color if provided
+        path.setAttribute('stroke', color || getColorForType(type));
         path.setAttribute('stroke-width', '2');
         path.setAttribute('fill', 'none');
         path.style.display = "none";
@@ -1394,10 +1408,11 @@
             return Number(a.dataset.order) - Number(b.dataset.order);
           });
 
+          const spacing = hoveredDates.has(dateKey) ? 5 : 4; // 5px on hover, 4px default
           dots.forEach((dot, index) => {
             const angle = (dot.dataset.month - 1 + (dot.dataset.day - 1) / new Date(new Date().getFullYear(), dot.dataset.month, 0).getDate() + 1) * 30;
             const radian = (angle - 90) * Math.PI / 180;
-            const radius = 160 + index * 5;
+            const radius = 160 + index * spacing;
             const markerCenterX = (centerX - 10) + radius * Math.cos(radian);
             const markerCenterY = (centerY - 10) + radius * Math.sin(radian);
             dot.style.left = (markerCenterX - 10) + "px";
@@ -1509,7 +1524,7 @@
           return rows.map(row => {
             const name = row.c[0]?.v ? row.c[0].v + "'s Birthday" : null;
             const dateStr = row.c[1]?.v || null;
-            const color = row.c[2]?.v || null; // Fetch color from column 3
+            const color = row.c[2]?.v || null;
             if (!name || !dateStr) return null;
             const match = dateStr.match(/Date\((\d+),(\d+),(\d+)\)/);
             if (!match) return null;
@@ -1535,7 +1550,7 @@
             const name = row.c[0]?.v || null;
             const dateStr = row.c[1]?.v || null;
             const endDateStr = row.c[2]?.v || null;
-            const color = row.c[3]?.v || null; // Fetch color from column 4
+            const color = row.c[3]?.v || null;
             if (!name || !dateStr) return null;
             const match = dateStr.match(/Date\((\d+),(\d+),(\d+)\)/);
             if (!match) return null;
