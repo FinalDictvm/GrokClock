@@ -1460,11 +1460,11 @@
 
         Object.keys(dateToVisibleDots).forEach(dateKey => {
           const dots = dateToVisibleDots[dateKey];
-          dots.sort((a, b) => {
-            const aIsDateRange = isDateRangeMarker(a);
-            const bIsDateRange = isDateRangeMarker(b);
-            if (aIsDateRange && !bIsDateRange) return -1;
-            if (!aIsDateRange && bIsDateRange) return 1;
+          const nonDateRangeDots = dots.filter(dot => !isDateRangeMarker(dot));
+          const dateRangeDots = dots.filter(dot => isDateRangeMarker(dot));
+
+          // Sort non-date-range dots for consistent stacking
+          nonDateRangeDots.sort((a, b) => {
             const typeA = a.dataset.type;
             const typeB = b.dataset.type;
             const priorityA = typePriority.indexOf(typeA);
@@ -1477,7 +1477,9 @@
           });
 
           const spacing = hoveredDates.has(dateKey) ? 5 : 4;
-          dots.forEach((dot, index) => {
+
+          // Position non-date-range dots with outward stacking
+          nonDateRangeDots.forEach((dot, index) => {
             const angle = parseFloat(dot.dataset.angle);
             const radian = (angle - 90) * Math.PI / 180;
             const baseRadius = 160;
@@ -1486,6 +1488,12 @@
             const markerCenterY = (centerY - 10) + radius * Math.sin(radian);
             dot.style.left = (markerCenterX - 10) + "px";
             dot.style.top = (markerCenterY - 10) + "px";
+          });
+
+          // Position date-range dots at their arc positions
+          dateRangeDots.forEach(dot => {
+            dot.style.left = dot.dataset.baseLeft;
+            dot.style.top = dot.dataset.baseTop;
           });
         });
 
